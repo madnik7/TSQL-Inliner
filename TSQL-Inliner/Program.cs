@@ -92,6 +92,7 @@ namespace TSQL_Inliner
             }
 
             beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
+
         }
 
         protected static TSqlFragment ReadTsql(string LocalAddress)
