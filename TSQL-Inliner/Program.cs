@@ -38,6 +38,15 @@ namespace TSQL_Inliner
             }
         }
 
+        class VarVisitor : TSqlConcreteFragmentVisitor
+        {
+            public override void Visit(VariableReference node)
+            {
+                node.Name = $"{node.Name}_inliner{variableCount}";
+                base.Visit(node);
+            }
+        }
+
         /// <summary>
         /// load inline stored procedure and process
         /// </summary>
@@ -64,11 +73,16 @@ namespace TSQL_Inliner
             };
 
             ParameterProcessing(beginEndBlockStatement, alterProcedureStatementParameters, ProcedureParametersValues);
+            beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
 
+            VarVisitor varVisitor = new VarVisitor();
+            beginEndBlockStatement.Accept(varVisitor);
             return beginEndBlockStatement;
         }
 
-        protected static void ParameterProcessing(BeginEndBlockStatement beginEndBlockStatement, List<ProcedureParameter> ProcedureParameters, Dictionary<string, ScalarExpression> ProcedureParametersValues)
+        protected static void ParameterProcessing(BeginEndBlockStatement beginEndBlockStatement,
+            List<ProcedureParameter> ProcedureParameters,
+            Dictionary<string, ScalarExpression> ProcedureParametersValues)
         {
             variableCount++;
             DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
@@ -81,18 +95,17 @@ namespace TSQL_Inliner
                     Nullable = parameter.Nullable,
                     Value = parameter.Value
                 };
-             
+
                 if (ProcedureParametersValues.Any(a => a.Key == declareVariableElement.VariableName.Value))
                 {
                     declareVariableElement.Value = ProcedureParametersValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value;
                 }
 
-                declareVariableElement.VariableName.Value = $"{parameter.VariableName.Value}_{variableCount}";
+                declareVariableElement.VariableName.Value = $"{parameter.VariableName.Value}_inliner{variableCount}";
                 declareVariableStatement.Declarations.Add(declareVariableElement);
             }
 
             beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
-
         }
 
         protected static TSqlFragment ReadTsql(string LocalAddress)
