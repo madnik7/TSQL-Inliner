@@ -16,7 +16,9 @@ namespace TSQL_Inliner
         /// Counter for make variables unique
         /// </summary>
         private static int variableCount = 0;
-        class MyVisistor : TSqlConcreteFragmentVisitor
+
+        #region Visit Methods
+        class MasterVisistor : TSqlConcreteFragmentVisitor
         {
             /// <summary>
             /// override 'Visit' method for process 'StatementLists'
@@ -24,19 +26,20 @@ namespace TSQL_Inliner
             /// <param name="node"></param>
             public override void Visit(StatementList node)
             {
-                foreach (var i in node.Statements.Where(a => a is ExecuteStatement).ToList())
+                foreach (var executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
                 {
-                    var executeStatement = (((ExecuteStatement)i).ExecuteSpecification.ExecutableEntity);
-                    var schemaIdentifier = ((ExecutableProcedureReference)executeStatement).ProcedureReference.ProcedureReference.Name.SchemaIdentifier.Value;
-                    var baseIdentifier = ((ExecutableProcedureReference)executeStatement).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
-                    var param = ((ExecutableProcedureReference)executeStatement).Parameters.ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
+                    var executableProcedureReference = (((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);
+                    var schemaIdentifier = ((ExecutableProcedureReference)executableProcedureReference).ProcedureReference.ProcedureReference.Name.SchemaIdentifier.Value;
+                    var baseIdentifier = ((ExecutableProcedureReference)executableProcedureReference).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
+                    var param = ((ExecutableProcedureReference)executableProcedureReference).Parameters.ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
 
-                    node.Statements[node.Statements.IndexOf(i)] = GetTSqlStatement($"[{schemaIdentifier}].[{baseIdentifier}]", param);
+                    node.Statements[node.Statements.IndexOf(executeStatement)] = GetTSqlStatement($"[{schemaIdentifier}].[{baseIdentifier}]", param);
                 }
 
                 base.Visit(node);
             }
         }
+
 
         class VarVisitor : TSqlConcreteFragmentVisitor
         {
@@ -45,7 +48,25 @@ namespace TSQL_Inliner
                 node.Name = $"{node.Name}_inliner{variableCount}";
                 base.Visit(node);
             }
+
+            public override void Visit(StatementList node)
+            {
+                foreach (var returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
+                {
+                    DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
+                    declareVariableStatement.Declarations.Add(new DeclareVariableElement()
+                    {
+                        Value = ((ReturnStatement)returnStatement).Expression,
+                        VariableName = new Identifier() { Value = $"ReturnValue_inliner{variableCount}" }
+                    });
+                    node.Statements.Add(declareVariableStatement);
+                    node.Statements.Remove(returnStatement);
+                }
+
+                base.Visit(node);
+            }
         }
+        #endregion
 
         /// <summary>
         /// load inline stored procedure and process
@@ -59,8 +80,6 @@ namespace TSQL_Inliner
             TSqlFragment tSqlFragment = ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\dbo.Branch_PropsGet3.sql");
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
 
-            MyVisistor myVisistor = new MyVisistor();
-
             var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
             AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
 
@@ -73,6 +92,7 @@ namespace TSQL_Inliner
             };
 
             ParameterProcessing(beginEndBlockStatement, alterProcedureStatementParameters, ProcedureParametersValues);
+
             beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
 
             VarVisitor varVisitor = new VarVisitor();
@@ -113,7 +133,7 @@ namespace TSQL_Inliner
             var parser = new TSql140Parser(true);
             var fragment = parser.Parse(new StreamReader(LocalAddress), out IList<ParseError> errors);
 
-            MyVisistor myVisitor = new MyVisistor();
+            MasterVisistor myVisitor = new MasterVisistor();
             fragment.Accept(myVisitor);
 
             return fragment;
