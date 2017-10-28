@@ -5,95 +5,88 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace TSQL_Inliner
 {
     class Program
     {
-        class MyVisistor : TSqlFragmentVisitor
+        private static int variableCount = 0;
+        class MyVisistor : TSqlConcreteFragmentVisitor
         {
-            public override void Visit(ExecuteStatement node)
+            public override void Visit(StatementList node)
             {
-                //node.ExecuteSpecification
-                ((ExecutableProcedureReference)node.ExecuteSpecification.ExecutableEntity).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value = "zzzzz";
+                foreach (var i in node.Statements.Where(a => a is ExecuteStatement).ToList())
+                {
+                    var executeStatement = (((ExecuteStatement)i).ExecuteSpecification.ExecutableEntity);
+                    var schemaIdentifier = ((ExecutableProcedureReference)executeStatement).ProcedureReference.ProcedureReference.Name.SchemaIdentifier.Value;
+                    var baseIdentifier = ((ExecutableProcedureReference)executeStatement).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
+                    var param = ((ExecutableProcedureReference)executeStatement).Parameters.ToDictionary(a => a.Variable == null ? ((VariableReference)a.ParameterValue).Name : a.Variable.Name, a => ((VariableReference)a.ParameterValue).Name);
+
+                    node.Statements[node.Statements.IndexOf(i)] = GetTSqlStatement($"[{schemaIdentifier}].[{baseIdentifier}]", param);
+                }
+
                 base.Visit(node);
             }
         }
 
-        static void Main(string[] args)
+        protected static TSqlStatement GetTSqlStatement(string SPIdentifier, Dictionary<string, string> Param)
+        {
+            variableCount++;
+            //TSqlFragment tSqlFragment = ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\{SPIdentifier}.sql");
+            TSqlFragment tSqlFragment = ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\dbo.Branch_PropsGet3.sql");
+            Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
+
+            MyVisistor myVisistor = new MyVisistor();
+
+            var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
+            AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
+
+            var alterProcedureStatementParameters = alterProcedureStatement.Parameters.Select(a => a).ToList();
+            
+            return addParametersToStatement(alterProcedureStatementParameters);
+        }
+
+        protected static BeginEndBlockStatement addParametersToStatement(List<ProcedureParameter> ProcedureParameters)
+        {
+            DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
+            foreach (var parameter in ProcedureParameters)
+            {
+                declareVariableStatement.Declarations.Add(new DeclareVariableElement()
+                {
+                    DataType = parameter.DataType,
+                    VariableName = parameter.VariableName,
+                    Nullable = parameter.Nullable,
+                    Value = parameter.Value
+                });
+            }
+            BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
+            {
+                StatementList = new StatementList()
+            };
+            beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
+
+            return beginEndBlockStatement;
+        }
+
+        protected static TSqlFragment ReadTsql(string LocalAddress)
         {
             var parser = new TSql140Parser(true);
-            var fragment = parser.Parse(new StreamReader(@"C:\Users\madnik7\Desktop\api.Bank_AllGet.sql"), out IList<ParseError> errors);
-            //ProcessScript(fragment as TSqlScript);
+            var fragment = parser.Parse(new StreamReader(LocalAddress), out IList<ParseError> errors);
 
-            var myVisitor = new MyVisistor();
+            MyVisistor myVisitor = new MyVisistor();
             fragment.Accept(myVisitor);
 
+            return fragment;
+        }
 
-            var sgr = new Sql140ScriptGenerator();
-            string str;
-            sgr.GenerateScript(fragment, out str);
+        static void Main(string[] args)
+        {
+            Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
+            sql140ScriptGenerator.GenerateScript(ReadTsql(@"C:\Users\Mohsen Hasani\Desktop\api.Branch_PropsGet1.sql"), out string str);
             Console.WriteLine(str);
-
-        }
-
-        static void ProcessScript(TSqlScript sql)
-        {
-            foreach (var item in sql.Batches)
-                ProceesStatements(item.Statements);
-        }
-
-        static void ProceesStatements(IList<TSqlStatement> statements)
-        {
-            foreach (var item in statements)
-            {
-                //Console.WriteLine("{0} -- {1}", item, item.GetType());
-                ProceesFragment(item);
-            }
-        }
-
-        static void ProceesExecuteStatement(ExecuteStatement executeStatement)
-        {
-            //Console.WriteLine(executeStatement.ExecuteSpecification);
-        }
-
-
-        static void ProceesFragment(TSqlFragment fragment)
-        {
-            if (fragment is TSqlBatch)
-            {
-                ProceesStatements((fragment as TSqlBatch).Statements);
-                return;
-            };
-
-            if (fragment is CreateProcedureStatement)
-            {
-                ProceesStatements((fragment as CreateProcedureStatement).StatementList.Statements);
-                return;
-            };
-
-            if (fragment is BeginEndBlockStatement)
-            {
-                ProceesStatements((fragment as BeginEndBlockStatement).StatementList.Statements);
-                return;
-            };
-
-            if (fragment is ExecuteStatement)
-            {
-                ProceesExecuteStatement((ExecuteStatement)fragment);
-                return;
-            }
-
-            foreach (var token in fragment.ScriptTokenStream)
-            {
-                ProcessToken(token);
-            }
-
-        }
-
-        static void ProcessToken(TSqlParserToken token)
-        {
-            //Console.WriteLine("{0}", token.ToString());
+            Console.ReadKey();
         }
     }
 }
