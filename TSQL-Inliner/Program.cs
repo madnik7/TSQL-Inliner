@@ -33,7 +33,6 @@ namespace TSQL_Inliner
 
         protected static TSqlStatement GetTSqlStatement(string SPIdentifier, Dictionary<string, string> Param)
         {
-            variableCount++;
             //TSqlFragment tSqlFragment = ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\{SPIdentifier}.sql");
             TSqlFragment tSqlFragment = ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\dbo.Branch_PropsGet3.sql");
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
@@ -44,23 +43,27 @@ namespace TSQL_Inliner
             AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
 
             var alterProcedureStatementParameters = alterProcedureStatement.Parameters.Select(a => a).ToList();
-            
-            return addParametersToStatement(alterProcedureStatementParameters);
+
+            return ParameterProcessing(alterProcedureStatementParameters);
         }
 
-        protected static BeginEndBlockStatement addParametersToStatement(List<ProcedureParameter> ProcedureParameters)
+        protected static BeginEndBlockStatement ParameterProcessing(List<ProcedureParameter> ProcedureParameters)
         {
+            variableCount++;
             DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
             foreach (var parameter in ProcedureParameters)
             {
-                declareVariableStatement.Declarations.Add(new DeclareVariableElement()
+                DeclareVariableElement declareVariableElement = new DeclareVariableElement()
                 {
                     DataType = parameter.DataType,
                     VariableName = parameter.VariableName,
                     Nullable = parameter.Nullable,
                     Value = parameter.Value
-                });
+                };
+                declareVariableElement.VariableName.Value = $"{parameter.VariableName}_{variableCount}";
+                declareVariableStatement.Declarations.Add(declareVariableElement);
             }
+
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
                 StatementList = new StatementList()
