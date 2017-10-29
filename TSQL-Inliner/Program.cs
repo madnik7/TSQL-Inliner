@@ -12,10 +12,12 @@ namespace TSQL_Inliner
 {
     class Program
     {
+        #region variables
         /// <summary>
         /// Counter for make variables unique
         /// </summary>
         private static int variableCount = 0;
+        #endregion
 
         #region Visit Methods
         class MasterVisistor : TSqlConcreteFragmentVisitor
@@ -68,6 +70,27 @@ namespace TSQL_Inliner
         }
         #endregion
 
+        #region Main Program
+        static void Main(string[] args)
+        {
+            Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
+            sql140ScriptGenerator.GenerateScript(ReadTsql(@"C:\Users\Mohsen Hasani\Desktop\api.Branch_PropsGet1.sql"), out string str);
+            Console.WriteLine(str);
+            Console.ReadKey();
+        }
+        #endregion
+
+        protected static TSqlFragment ReadTsql(string LocalAddress)
+        {
+            var parser = new TSql140Parser(true);
+            var fragment = parser.Parse(new StreamReader(LocalAddress), out IList<ParseError> errors);
+
+            MasterVisistor myVisitor = new MasterVisistor();
+            fragment.Accept(myVisitor);
+
+            return fragment;
+        }
+
         /// <summary>
         /// load inline stored procedure and process
         /// </summary>
@@ -96,7 +119,7 @@ namespace TSQL_Inliner
             beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
 
             VarVisitor varVisitor = new VarVisitor();
-            beginEndBlockStatement.Accept(varVisitor);
+            beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
             return beginEndBlockStatement;
         }
 
@@ -120,31 +143,16 @@ namespace TSQL_Inliner
                 {
                     declareVariableElement.Value = ProcedureParametersValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value;
                 }
+                else
+                {
+                    declareVariableElement.Value = null;
+                }
 
                 declareVariableElement.VariableName.Value = $"{parameter.VariableName.Value}_inliner{variableCount}";
                 declareVariableStatement.Declarations.Add(declareVariableElement);
             }
 
             beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
-        }
-
-        protected static TSqlFragment ReadTsql(string LocalAddress)
-        {
-            var parser = new TSql140Parser(true);
-            var fragment = parser.Parse(new StreamReader(LocalAddress), out IList<ParseError> errors);
-
-            MasterVisistor myVisitor = new MasterVisistor();
-            fragment.Accept(myVisitor);
-
-            return fragment;
-        }
-
-        static void Main(string[] args)
-        {
-            Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
-            sql140ScriptGenerator.GenerateScript(ReadTsql(@"C:\Users\Mohsen Hasani\Desktop\api.Branch_PropsGet1.sql"), out string str);
-            Console.WriteLine(str);
-            Console.ReadKey();
         }
     }
 }
