@@ -18,6 +18,7 @@ namespace TSQL_Inliner
         /// </summary>
         private static int variableCount = 0;
         public static BeginEndBlockStatement returnStatementPlace;
+        public static bool hasReturnStatement = false;
         #endregion
 
         #region Visit Methods
@@ -77,45 +78,48 @@ namespace TSQL_Inliner
 
             public override void Visit(StatementList node)
             {
-                if (returnStatementPlace is null || returnStatementPlace.StatementList is null)
-                    returnStatementPlace = new BeginEndBlockStatement()
-                    {
-                        StatementList = new StatementList()
-                    };
-
                 foreach (var returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
                 {
-                    DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
-
-                    declareVariableStatement.Declarations.Add(new DeclareVariableElement()
-                    {
-                        DataType = new SqlDataTypeReference()
-                        {
-                            SqlDataTypeOption = SqlDataTypeOption.Int
-                        },
-                        VariableName = new Identifier() { Value = $"@ReturnValue_inliner{variableCount}" }
-                    });
-                    returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
-
-                    //////////////
+                    hasReturnStatement = true;
                     BeginEndBlockStatement returnBeginEndBlockStatement = new BeginEndBlockStatement()
                     {
                         StatementList = new StatementList()
                     };
-                    returnBeginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
-                    {
-                        Variable = new VariableReference()
-                        {
-                            Name = $"@ReturnValue",
-                            Collation = new Identifier()
-                            {
-                                Value = "123",
-                                QuoteType = QuoteType.NotQuoted
-                            }
-                        },
-                        AssignmentKind = AssignmentKind.Equals
-                    });
 
+                    if (((ReturnStatement)returnStatement).Expression != null)
+                    {
+                        DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
+
+                        declareVariableStatement.Declarations.Add(new DeclareVariableElement()
+                        {
+                            DataType = new SqlDataTypeReference()
+                            {
+                                SqlDataTypeOption = SqlDataTypeOption.Int
+                            },
+                            VariableName = new Identifier() { Value = $"@ReturnValue_inliner{variableCount}" }
+                        });
+
+                        returnStatementPlace = new BeginEndBlockStatement()
+                        {
+                            StatementList = new StatementList()
+                        };
+                        returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
+
+
+                        returnBeginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
+                        {
+                            AssignmentKind = AssignmentKind.Equals,
+                            Variable = new VariableReference()
+                            {
+                                Name = $"@ReturnValue",
+                            },
+                            Expression = new IntegerLiteral()
+                            {
+                                Value = ((ReturnStatement)returnStatement).Expression is VariableReference ? ((VariableReference)((ReturnStatement)returnStatement).Expression).Name :
+                                ((IntegerLiteral)((ReturnStatement)returnStatement).Expression).Value
+                            }
+                        });
+                    }
                     returnBeginEndBlockStatement.StatementList.Statements.Add(new GoToStatement()
                     {
                         LabelName = new Identifier()
@@ -126,7 +130,6 @@ namespace TSQL_Inliner
                     });
                     node.Statements[node.Statements.IndexOf(returnStatement)] = returnBeginEndBlockStatement;
                 }
-
                 base.Visit(node);
             }
         }
@@ -187,14 +190,18 @@ namespace TSQL_Inliner
             beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
 
             #region Return values 
-            if (returnStatementPlace.StatementList.Statements.Any())
+
+            if (returnStatementPlace != null && returnStatementPlace.StatementList != null && returnStatementPlace.StatementList.Statements.Any())
             {
                 //declare variables on top
                 foreach (var statement in returnStatementPlace.StatementList.Statements)
                 {
                     beginEndBlockStatement.StatementList.Statements.Insert(0, statement);
                 }
+            }
 
+            if (hasReturnStatement)
+            {
                 //set goto on end
                 beginEndBlockStatement.StatementList.Statements.Add(new LabelStatement()
                 {
