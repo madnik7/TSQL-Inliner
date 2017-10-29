@@ -35,13 +35,24 @@ namespace TSQL_Inliner
                     var baseIdentifier = ((ExecutableProcedureReference)executableProcedureReference).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
                     var param = ((ExecutableProcedureReference)executableProcedureReference).Parameters.ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
 
+                    //node.Statements[node.Statements.IndexOf(executeStatement)].ScriptTokenStream.Insert(0, new TSqlParserToken()
+                    //{
+                    //    TokenType = TSqlTokenType.SingleLineComment,
+                    //    Text = "=-=-=-=-= Start =-=-=-=-="
+                    //});
+
                     node.Statements[node.Statements.IndexOf(executeStatement)] = GetTSqlStatement($"[{schemaIdentifier}].[{baseIdentifier}]", param);
+
+                    //beginEndBlockStatement.ScriptTokenStream.Add(new TSqlParserToken()
+                    //{
+                    //    TokenType = TSqlTokenType.SingleLineComment,
+                    //    Text = "=-=-=-=-= End =-=-=-=-="
+                    //});
                 }
 
                 base.Visit(node);
             }
         }
-
 
         class VarVisitor : TSqlConcreteFragmentVisitor
         {
@@ -49,6 +60,18 @@ namespace TSQL_Inliner
             {
                 node.Name = $"{node.Name}_inliner{variableCount}";
                 base.Visit(node);
+            }
+
+            /// <summary>
+            /// if body has Execute Parameter, we must rename Variable References
+            /// </summary>
+            /// <param name="node"></param>
+            public override void ExplicitVisit(ExecuteParameter node)
+            {
+                if (node.ParameterValue is VariableReference)
+                {
+                    ((VariableReference)node.ParameterValue).Name = $"{((VariableReference)node.ParameterValue).Name}_inliner{variableCount}";
+                }
             }
 
             public override void Visit(StatementList node)
@@ -97,7 +120,7 @@ namespace TSQL_Inliner
         /// <param name="SPIdentifier">stored procedure identifier</param>
         /// <param name="Param">Variable Reference</param>
         /// <returns></returns>
-        protected static TSqlStatement GetTSqlStatement(string SPIdentifier, Dictionary<string, ScalarExpression> ProcedureParametersValues)
+        protected static TSqlStatement GetTSqlStatement(string SPIdentifier, Dictionary<string, ScalarExpression> procedureParametersValues)
         {
             //TSqlFragment tSqlFragment = ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\{SPIdentifier}.sql");
             TSqlFragment tSqlFragment = ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\dbo.Branch_PropsGet3.sql");
@@ -111,10 +134,11 @@ namespace TSQL_Inliner
 
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
-                StatementList = new StatementList()
+                StatementList = new StatementList(),
+                ScriptTokenStream = new List<TSqlParserToken>()
             };
 
-            ParameterProcessing(beginEndBlockStatement, alterProcedureStatementParameters, ProcedureParametersValues);
+            ParameterProcessing(beginEndBlockStatement, alterProcedureStatementParameters, procedureParametersValues);
 
             beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
 
