@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TSQL_Inliner.Model;
+using Newtonsoft.Json;
 
 namespace TSQL_Inliner.Method
 {
@@ -16,6 +18,8 @@ namespace TSQL_Inliner.Method
         /// <param name="node"></param>
         public override void Visit(StatementList node)
         {
+           
+
             foreach (var executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
                 var executableProcedureReference = (((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);

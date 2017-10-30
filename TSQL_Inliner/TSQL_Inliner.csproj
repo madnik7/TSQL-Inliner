@@ -52,6 +52,7 @@
     <Compile Include="Method\Inliner.cs" />
     <Compile Include="Method\TSQLReader.cs" />
     <Compile Include="Method\Visitor.cs" />
+    <Compile Include="Model\CommentModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
