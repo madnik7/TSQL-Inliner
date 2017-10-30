@@ -9,13 +9,14 @@ using Newtonsoft.Json;
 
 namespace TSQL_Inliner.Method
 {
-    // #InlinerStart {"InlineMode": "Inline|Remove|None", "IsOptimizable": true, "IsOptimized":true} #InlinerEnd
     class MasterVisitor : TSqlConcreteFragmentVisitor
     {
+        private static bool IsFirstCreateProcedureStatement = true;
         public override void Visit(TSqlScript node)
         {
-            if (node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement))
+            if (node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement) && IsFirstCreateProcedureStatement)
             {
+                IsFirstCreateProcedureStatement = false;
                 CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)node.Batches.FirstOrDefault().Statements.FirstOrDefault(b => b is CreateProcedureStatement);
 
                 AlterProcedureStatement alterProcedureStatement = new AlterProcedureStatement()
@@ -35,6 +36,7 @@ namespace TSQL_Inliner.Method
             }
             base.Visit(node);
         }
+
         /// <summary>
         /// override 'Visit' method for process 'StatementLists'
         /// </summary>
