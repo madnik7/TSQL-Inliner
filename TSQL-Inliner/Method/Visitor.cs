@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace TSQL_Inliner.Method
 {
+    // #InlinerStart {"InlineMode": "Inline|Remove|None", "IsOptimizable": true, "IsOptimized":true} #InlinerEnd
     class MasterVisitor : TSqlConcreteFragmentVisitor
     {
         /// <summary>
@@ -28,8 +29,8 @@ namespace TSQL_Inliner.Method
                 //    Text = "=-=-=-=-= Start =-=-=-=-="
                 //});
 
-                Handler handler = new Handler();
-                node.Statements[node.Statements.IndexOf(executeStatement)] = handler.HandleExecuteStatement($"[{schemaIdentifier}].[{baseIdentifier}]", param);
+                Inliner handler = new Inliner();
+                node.Statements[node.Statements.IndexOf(executeStatement)] = handler.HandleExecuteStatement(schemaIdentifier, baseIdentifier, param);
 
                 //beginEndBlockStatement.ScriptTokenStream.Add(new TSqlParserToken()
                 //{
@@ -46,19 +47,15 @@ namespace TSQL_Inliner.Method
     {
         public override void Visit(VariableReference node)
         {
-            node.Name = $"{node.Name}_inliner{Handler.variableCount}";
+            node.Name = $"{node.Name}_inliner{Inliner.variableCount}";
             base.Visit(node);
         }
 
-        /// <summary>
-        /// if body has Execute Parameter, we must rename Variable References
-        /// </summary>
-        /// <param name="node"></param>
         public override void ExplicitVisit(ExecuteParameter node)
         {
             if (node.ParameterValue is VariableReference)
             {
-                ((VariableReference)node.ParameterValue).Name = $"{((VariableReference)node.ParameterValue).Name}_inliner{Handler.variableCount}";
+                ((VariableReference)node.ParameterValue).Name = $"{((VariableReference)node.ParameterValue).Name}_inliner{Inliner.variableCount}";
             }
         }
 
@@ -66,7 +63,7 @@ namespace TSQL_Inliner.Method
         {
             foreach (var returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
-                Handler.hasReturnStatement = true;
+                Inliner.hasReturnStatement = true;
                 BeginEndBlockStatement returnBeginEndBlockStatement = new BeginEndBlockStatement()
                 {
                     StatementList = new StatementList()
@@ -82,14 +79,15 @@ namespace TSQL_Inliner.Method
                         {
                             SqlDataTypeOption = SqlDataTypeOption.Int
                         },
-                        VariableName = new Identifier() { Value = $"@ReturnValue_inliner{Handler.variableCount}" }
+                        VariableName = new Identifier() { Value = $"@ReturnValue_inliner{Inliner.variableCount}" }
                     });
 
-                    Handler.returnStatementPlace = new BeginEndBlockStatement()
-                    {
-                        StatementList = new StatementList()
-                    };
-                    Handler.returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
+                    if (Inliner.returnStatementPlace == null || Inliner.returnStatementPlace.StatementList == null)
+                        Inliner.returnStatementPlace = new BeginEndBlockStatement()
+                        {
+                            StatementList = new StatementList()
+                        };
+                    Inliner.returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
 
 
                     returnBeginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
@@ -111,11 +109,25 @@ namespace TSQL_Inliner.Method
                 {
                     LabelName = new Identifier()
                     {
-                        Value = $"GOTO_{Handler.variableCount}",
+                        Value = $"GOTO_{Inliner.variableCount}",
                         QuoteType = QuoteType.NotQuoted
                     }
                 });
                 node.Statements[node.Statements.IndexOf(returnStatement)] = returnBeginEndBlockStatement;
+            }
+            base.Visit(node);
+        }
+
+        public override void Visit(IfStatement node)
+        {
+            if (!(node.ThenStatement is BeginEndBlockStatement))
+            {
+                BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement()
+                {
+                    StatementList = new StatementList()
+                };
+                beginEndBlockStatement.StatementList.Statements.Add(node.ThenStatement);
+                node.ThenStatement = beginEndBlockStatement;
             }
             base.Visit(node);
         }

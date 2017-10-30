@@ -10,7 +10,7 @@ namespace TSQL_Inliner
         {
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
             TSQLReader tSQLReader = new TSQLReader();
-            sql140ScriptGenerator.GenerateScript(tSQLReader.ReadTsql(@"C:\Users\Mohsen Hasani\Desktop\api.Branch_PropsGet1.sql"), out string str);
+            sql140ScriptGenerator.GenerateScript(tSQLReader.ReadTsql("dbo", "Main"), out string str);
             Console.WriteLine(str);
             Console.ReadKey();
         }

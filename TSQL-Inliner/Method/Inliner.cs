@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace TSQL_Inliner.Method
 {
-    public class Handler
+    public class Inliner
     {
         #region variables
 
@@ -18,35 +18,39 @@ namespace TSQL_Inliner.Method
         public static BeginEndBlockStatement returnStatementPlace;
         public static bool hasReturnStatement = false;
         public static Dictionary<ProcedureParameter, DeclareVariableElement> outputParameters;
+
         #endregion
 
+
+
         #region Handlers
+
         /// <summary>
         /// load inline stored procedure and handle that
         /// </summary>
         /// <param name="SPIdentifier">stored procedure identifier</param>
         /// <param name="Param">Variable Reference</param>
         /// <returns></returns>
-        public TSqlStatement HandleExecuteStatement(string SPIdentifier, Dictionary<string, ScalarExpression> procedureParametersValues)
+        public TSqlStatement HandleExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
         {
             TSQLReader tSQLReader = new TSQLReader();
-            TSqlFragment tSqlFragment = tSQLReader.ReadTsql($@"C:\Users\Mohsen Hasani\Desktop\dbo.Branch_PropsGet3.sql");
+            TSqlFragment tSqlFragment = tSQLReader.ReadTsql(schema, procedure);
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
 
-            var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
-            AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
+            var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
+            CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
 
             //get all stored procedure parameters for declare inline
-            var alterProcedureStatementParameters = alterProcedureStatement.Parameters.Select(a => a).ToList();
+            var createProcedureStatementParameters = createProcedureStatement.Parameters.Select(a => a).ToList();
 
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
                 StatementList = new StatementList()
             };
 
-            HandleParameters(beginEndBlockStatement, alterProcedureStatementParameters, procedureParametersValues);
+            HandleParameters(beginEndBlockStatement, createProcedureStatementParameters, procedureParametersValues);
 
-            beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+            beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
 
             VarVisitor varVisitor = new VarVisitor();
             beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
@@ -69,27 +73,25 @@ namespace TSQL_Inliner.Method
 
             if (hasReturnStatement)
             {
-                //set goto on end
+                //insert goto on end
                 beginEndBlockStatement.StatementList.Statements.Add(new LabelStatement()
                 {
                     Value = $"GOTO_{variableCount}:"
                 });
 
                 //set output parameters
-                if (outputParameters.Any())
+                if (outputParameters != null && outputParameters.Any())
                 {
-                    foreach (var parameter in outputParameters)
+                    foreach (var parameter in outputParameters.Where(a => a.Value.Value != null))
                     {
                         beginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
                         {
                             AssignmentKind = AssignmentKind.Equals,
                             Variable = new VariableReference()
                             {
-                                Name = parameter.Value.Value != null ?
-                                (parameter.Value.Value is VariableReference ?
+                                Name = (parameter.Value.Value is VariableReference ?
                                 ((VariableReference)parameter.Value.Value).Name :
-                                ((IntegerLiteral)parameter.Value.Value).Value) :
-                                string.Empty
+                                ((IntegerLiteral)parameter.Value.Value).Value)
                             },
                             Expression = new IntegerLiteral()
                             {
