@@ -17,9 +17,8 @@ namespace TSQL_Inliner.Method
         public static int variableCount = 0;
         public static BeginEndBlockStatement returnStatementPlace;
         public static bool hasReturnStatement = false;
-
+        public static Dictionary<ProcedureParameter, DeclareVariableElement> outputParameters;
         #endregion
-
 
         #region Handlers
         /// <summary>
@@ -75,6 +74,30 @@ namespace TSQL_Inliner.Method
                 {
                     Value = $"GOTO_{variableCount}:"
                 });
+
+                //set output parameters
+                if (outputParameters.Any())
+                {
+                    foreach (var parameter in outputParameters)
+                    {
+                        beginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
+                        {
+                            AssignmentKind = AssignmentKind.Equals,
+                            Variable = new VariableReference()
+                            {
+                                Name = parameter.Value.Value != null ?
+                                (parameter.Value.Value is VariableReference ?
+                                ((VariableReference)parameter.Value.Value).Name :
+                                ((IntegerLiteral)parameter.Value.Value).Value) :
+                                string.Empty
+                            },
+                            Expression = new IntegerLiteral()
+                            {
+                                Value = parameter.Key.VariableName.Value
+                            }
+                        });
+                    }
+                }
             }
         }
 
@@ -105,6 +128,14 @@ namespace TSQL_Inliner.Method
 
                 declareVariableElement.VariableName.Value = $"{parameter.VariableName.Value}_inliner{variableCount}";
                 declareVariableStatement.Declarations.Add(declareVariableElement);
+
+                if (parameter.Modifier == ParameterModifier.Output)
+                {
+                    if (outputParameters == null)
+                        outputParameters = new Dictionary<ProcedureParameter, DeclareVariableElement>();
+                    outputParameters.Add(parameter, declareVariableElement);
+
+                }
             }
 
             beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);

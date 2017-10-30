@@ -27,6 +27,7 @@ namespace TSQL_Inliner.Method
                 //    TokenType = TSqlTokenType.SingleLineComment,
                 //    Text = "=-=-=-=-= Start =-=-=-=-="
                 //});
+
                 Handler handler = new Handler();
                 node.Statements[node.Statements.IndexOf(executeStatement)] = handler.HandleExecuteStatement($"[{schemaIdentifier}].[{baseIdentifier}]", param);
 
@@ -100,7 +101,8 @@ namespace TSQL_Inliner.Method
                         },
                         Expression = new IntegerLiteral()
                         {
-                            Value = ((ReturnStatement)returnStatement).Expression is VariableReference ? ((VariableReference)((ReturnStatement)returnStatement).Expression).Name :
+                            Value = ((ReturnStatement)returnStatement).Expression is VariableReference ?
+                            ((VariableReference)((ReturnStatement)returnStatement).Expression).Name :
                             ((IntegerLiteral)((ReturnStatement)returnStatement).Expression).Value
                         }
                     });
