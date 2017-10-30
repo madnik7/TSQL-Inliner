@@ -12,13 +12,51 @@ namespace TSQL_Inliner.Method
     // #InlinerStart {"InlineMode": "Inline|Remove|None", "IsOptimizable": true, "IsOptimized":true} #InlinerEnd
     class MasterVisitor : TSqlConcreteFragmentVisitor
     {
+        public override void Visit(TSqlScript node)
+        {
+            if (node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement))
+            {
+                CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)node.Batches.FirstOrDefault().Statements.FirstOrDefault(b => b is CreateProcedureStatement);
+
+                AlterProcedureStatement alterProcedureStatement = new AlterProcedureStatement()
+                {
+                    IsForReplication = createProcedureStatement.IsForReplication,
+                    MethodSpecifier = createProcedureStatement.MethodSpecifier,
+                    ProcedureReference = createProcedureStatement.ProcedureReference,
+                    StatementList = createProcedureStatement.StatementList,
+                    ScriptTokenStream = createProcedureStatement.ScriptTokenStream
+                };
+                foreach (var i in createProcedureStatement.Options)
+                    alterProcedureStatement.Options.Add(i);
+                foreach (var i in createProcedureStatement.Parameters)
+                    alterProcedureStatement.Parameters.Add(i);
+
+                node.Batches.FirstOrDefault().Statements[node.Batches.FirstOrDefault().Statements.IndexOf(createProcedureStatement)] = alterProcedureStatement;
+            }
+            base.Visit(node);
+        }
         /// <summary>
         /// override 'Visit' method for process 'StatementLists'
         /// </summary>
         /// <param name="node"></param>
         public override void Visit(StatementList node)
         {
-           
+            CommentModel commentModel = new CommentModel();
+            if (node.ScriptTokenStream != null)
+            {
+                var comment = node.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.SingleLineComment);
+                if (comment != null)
+                {
+                    try
+                    {
+                        commentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
+                    }
+                    catch { }
+
+                    comment.Text = $"#InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd sdfsdfsdf";
+                    node.ScriptTokenStream[node.ScriptTokenStream.IndexOf(comment)] = comment;
+                }
+            }
 
             foreach (var executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
