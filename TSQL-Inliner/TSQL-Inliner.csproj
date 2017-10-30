@@ -7,7 +7,7 @@
     <ProjectGuid>{8565D6D1-A28D-4C03-A1AC-24D0D7EDFE55}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>TSQL_Inliner</RootNamespace>
-    <AssemblyName>TSQL_Inliner</AssemblyName>
+    <AssemblyName>TSQL-Inliner</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
