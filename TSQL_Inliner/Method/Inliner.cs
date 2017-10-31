@@ -14,6 +14,7 @@ namespace TSQL_Inliner.Method
         public static BeginEndBlockStatement returnStatementPlace;
         public static bool hasReturnStatement = false;
         public static Dictionary<ProcedureParameter, DeclareVariableElement> outputParameters;
+        public static string GoToName = string.Empty;
 
         /// <summary>
         /// set new name for parameters based on level of srored procedure
@@ -41,33 +42,33 @@ namespace TSQL_Inliner.Method
                 StatementList = new StatementList()
             };
 
-            var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
-            if (batche != null)
-            {
-                AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
-
-                Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
-
-                beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
-            }
-            else
-            {
-                batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
-
-                CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
-
-                Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), procedureParametersValues);
-
-                beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
-            }
-
             if (commentModel.IsOptimizable && !commentModel.IsOptimized)
             {
+                var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
+                if (batche != null)
+                {
+                    AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
+
+                    Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
+
+                    beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+                }
+                else
+                {
+                    batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
+
+                    CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
+
+                    Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), procedureParametersValues);
+
+                    beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+                }
+                GoToName = $"EndOf_{schema}_{procedure}";
                 VarVisitor varVisitor = new VarVisitor();
                 beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
-            }
 
-            ReturnStatement(beginEndBlockStatement);
+                ReturnStatement(beginEndBlockStatement);
+            }
 
             return beginEndBlockStatement;
         }
@@ -88,7 +89,7 @@ namespace TSQL_Inliner.Method
                 //insert goto on end
                 beginEndBlockStatement.StatementList.Statements.Add(new LabelStatement()
                 {
-                    Value = $"GOTO_{variableCount}:"
+                    Value = $"{GoToName}:"
                 });
 
                 //set output parameters

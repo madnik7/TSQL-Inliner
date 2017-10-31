@@ -15,17 +15,25 @@ namespace TSQL_Inliner
 
             TSqlFragment sqlFragment = tSQLConnection.ReadTsql(out CommentModel commentModel, out string topComments, "dbo", "Main");
 
-            commentModel.IsOptimized = true;
-
-            sql140ScriptGenerator.GenerateScript(sqlFragment, out string str);
-            str = $"{topComments}-- #InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd {Environment.NewLine} {str}";
-
-            Console.WriteLine(str + Environment.NewLine);
-            Console.WriteLine("=-=-=-=-=-=-=-=-=-=-=-=" + Environment.NewLine + "Execute this script ? [y/n] ");
-
-            if (Console.ReadKey().KeyChar.ToString().ToLower() == "y")
+            if (!commentModel.IsOptimized)
             {
-                tSQLConnection.WriteTsql(str);
+                commentModel.IsOptimized = true;
+
+                sql140ScriptGenerator.GenerateScript(sqlFragment, out string str);
+                str = $"{topComments}-- #InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd {Environment.NewLine} {str}";
+
+                Console.WriteLine(str + Environment.NewLine);
+                Console.WriteLine("=-=-=-=-=-=-=-=-=-=-=-=" + Environment.NewLine + "Execute this script ? [y/n] ");
+
+                if (Console.ReadKey().KeyChar.ToString().ToLower() == "y")
+                {
+                    tSQLConnection.WriteTsql(str);
+                }
+            }
+            else
+            {
+                Console.WriteLine("this code alrady optimized, press any key for exit.");
+                Console.ReadKey();
             }
         }
     }

@@ -16,12 +16,13 @@ namespace TSQL_Inliner.Model
         }
 
         /// <summary>
+        /// Does this code require processing or remove this or do nothing?
         /// Inline|Remove|None
         /// </summary>
         public string InlineMode { get; set; }
 
         /// <summary>
-        /// Does this code require processing?
+        /// Can process this code?
         /// </summary>
         public bool IsOptimizable { get; set; }
 

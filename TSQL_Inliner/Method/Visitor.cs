@@ -76,8 +76,7 @@ namespace TSQL_Inliner.Method
                 ((VariableReference)node.ParameterValue).Name = Inliner.NewName(((VariableReference)node.ParameterValue).Name);
             }
         }
-
-
+        
         public override void Visit(StatementList node)
         {
             //if we have a "ReturnStatement" inside stored procedures, we need to end up stored procedure code and resume the master file
@@ -134,7 +133,7 @@ namespace TSQL_Inliner.Method
                 {
                     LabelName = new Identifier()
                     {
-                        Value = $"GOTO_{Inliner.variableCount}",
+                        Value = Inliner.GoToName,
                         QuoteType = QuoteType.NotQuoted
                     }
                 });
