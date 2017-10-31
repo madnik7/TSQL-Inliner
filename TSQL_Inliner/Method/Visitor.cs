@@ -1,11 +1,5 @@
 ﻿using Microsoft.SqlServer.TransactSql.ScriptDom;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TSQL_Inliner.Model;
-using Newtonsoft.Json;
 
 namespace TSQL_Inliner.Method
 {
@@ -14,23 +8,6 @@ namespace TSQL_Inliner.Method
         private static bool IsFirstCreateProcedureStatement = true;
         public override void Visit(TSqlScript node)
         {
-            //CommentModel commentModel = new CommentModel();
-            //if (node.ScriptTokenStream != null)
-            //{
-            //    var comment = node.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.SingleLineComment);
-            //    if (comment != null)
-            //    {
-            //        try
-            //        {
-            //            commentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
-            //        }
-            //        catch { }
-
-            //        comment.Text = $"#InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd sdfsdfsdf";
-            //        node.ScriptTokenStream[node.ScriptTokenStream.IndexOf(comment)] = comment;
-            //    }
-            //}
-
             if (node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement) && IsFirstCreateProcedureStatement)
             {
                 IsFirstCreateProcedureStatement = false;
@@ -53,7 +30,7 @@ namespace TSQL_Inliner.Method
             }
             base.Visit(node);
         }
-
+        
         /// <summary>
         /// override 'Visit' method for process 'StatementLists'
         /// </summary>
@@ -139,7 +116,6 @@ namespace TSQL_Inliner.Method
                         };
                     Inliner.returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
 
-
                     returnBeginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
                     {
                         AssignmentKind = AssignmentKind.Equals,
@@ -155,6 +131,7 @@ namespace TSQL_Inliner.Method
                         }
                     });
                 }
+
                 returnBeginEndBlockStatement.StatementList.Statements.Add(new GoToStatement()
                 {
                     LabelName = new Identifier()

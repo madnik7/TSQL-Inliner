@@ -1,9 +1,7 @@
 ﻿using Microsoft.SqlServer.TransactSql.ScriptDom;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using TSQL_Inliner.Model;
 
 namespace TSQL_Inliner.Method
 {
@@ -27,7 +25,7 @@ namespace TSQL_Inliner.Method
         public TSqlStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
         {
             TSQLConnection tSQLReader = new TSQLConnection();
-            TSqlFragment tSqlFragment = tSQLReader.ReadTsql(schema, procedure);
+            TSqlFragment tSqlFragment = tSQLReader.ReadTsql(out CommentModel commentModel, out string topComments, schema, procedure);
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
@@ -38,7 +36,7 @@ namespace TSQL_Inliner.Method
             if (batche != null)
             {
                 AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
-                
+
                 Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
 
                 beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
@@ -54,8 +52,11 @@ namespace TSQL_Inliner.Method
                 beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
             }
 
-            VarVisitor varVisitor = new VarVisitor();
-            beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
+            if (commentModel.IsOptimizable && !commentModel.IsOptimized)
+            {
+                VarVisitor varVisitor = new VarVisitor();
+                beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
+            }
 
             ReturnStatement(beginEndBlockStatement);
 
