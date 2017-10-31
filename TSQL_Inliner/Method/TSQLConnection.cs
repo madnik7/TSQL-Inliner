@@ -11,7 +11,16 @@ namespace TSQL_Inliner.Method
 {
     public class TSQLConnection
     {
-        string sqlConnectionString = @"Data Source=localhost;Initial Catalog=test;User ID=mohsen;Password=123123;MultipleActiveResultSets=True;Application Name=EntityFramework";
+        protected string sqlConnectionString = @"Data Source=localhost;Initial Catalog=test;User ID=mohsen;Password=123123;MultipleActiveResultSets=True;Application Name=EntityFramework";
+
+        /// <summary>
+        /// //Read stored procedire by schema and name
+        /// </summary>
+        /// <param name="commentModel">json comment for process</param>
+        /// <param name="topComments">all comments</param>
+        /// <param name="schema"></param>
+        /// <param name="procedure"></param>
+        /// <returns></returns>
         public TSqlFragment ReadTsql(out CommentModel commentModel, out string topComments, string schema, string procedure)
         {
             string ReadSPScript = $@"SELECT definition AS Script

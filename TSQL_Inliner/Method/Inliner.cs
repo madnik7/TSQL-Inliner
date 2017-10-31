@@ -15,6 +15,15 @@ namespace TSQL_Inliner.Method
         public static bool hasReturnStatement = false;
         public static Dictionary<ProcedureParameter, DeclareVariableElement> outputParameters;
 
+        /// <summary>
+        /// set new name for parameters based on level of srored procedure
+        /// </summary>
+        /// <param name="Name"></param>
+        /// <returns></returns>
+        public static string NewName(string Name)
+        {
+            return $"{Name}_inliner{variableCount}";
+        }
 
         /// <summary>
         /// load inline stored procedure and handle that
@@ -131,7 +140,7 @@ namespace TSQL_Inliner.Method
                     declareVariableElement.Value = null;
                 }
 
-                declareVariableElement.VariableName.Value = $"{parameter.VariableName.Value}_inliner{variableCount}";
+                declareVariableElement.VariableName.Value = Inliner.NewName(parameter.VariableName.Value);
                 declareVariableStatement.Declarations.Add(declareVariableElement);
 
                 if (parameter.Modifier == ParameterModifier.Output)

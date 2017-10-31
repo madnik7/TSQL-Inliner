@@ -5,6 +5,7 @@ namespace TSQL_Inliner.Method
 {
     class MasterVisitor : TSqlConcreteFragmentVisitor
     {
+        //we must change "CreateProcedureStatement" to "AlterProcedureStatement" just for master stored procedure
         private static bool IsFirstCreateProcedureStatement = true;
         public override void Visit(TSqlScript node)
         {
@@ -30,7 +31,7 @@ namespace TSQL_Inliner.Method
             }
             base.Visit(node);
         }
-        
+
         /// <summary>
         /// override 'Visit' method for process 'StatementLists'
         /// </summary>
@@ -44,50 +45,43 @@ namespace TSQL_Inliner.Method
                 var baseIdentifier = ((ExecutableProcedureReference)executableProcedureReference).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
                 var param = ((ExecutableProcedureReference)executableProcedureReference).Parameters.ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
 
-                //node.Statements[node.Statements.IndexOf(executeStatement)].ScriptTokenStream.Insert(0, new TSqlParserToken()
-                //{
-                //    TokenType = TSqlTokenType.SingleLineComment,
-                //    Text = "=-=-=-=-= Start =-=-=-=-="
-                //});
-
                 Inliner handler = new Inliner();
                 node.Statements[node.Statements.IndexOf(executeStatement)] = handler.ExecuteStatement(schemaIdentifier, baseIdentifier, param);
-
-                //beginEndBlockStatement.ScriptTokenStream.Add(new TSqlParserToken()
-                //{
-                //    TokenType = TSqlTokenType.SingleLineComment,
-                //    Text = "=-=-=-=-= End =-=-=-=-="
-                //});
             }
-
             base.Visit(node);
         }
     }
 
     class VarVisitor : TSqlConcreteFragmentVisitor
     {
+        //Rename "VariableReference"s
         public override void Visit(VariableReference node)
         {
-            node.Name = $"{node.Name}_inliner{Inliner.variableCount}";
+            node.Name = Inliner.NewName(node.Name);
             base.Visit(node);
         }
 
+        //Rename "DeclareVariableElement"s
         public override void Visit(DeclareVariableElement node)
         {
-            node.VariableName.Value = $"{node.VariableName.Value}_inliner{Inliner.variableCount}";
+            node.VariableName.Value = Inliner.NewName(node.VariableName.Value);
             base.Visit(node);
         }
 
+        //Rename "VariableReference"s of "ExecuteParameter"
         public override void ExplicitVisit(ExecuteParameter node)
         {
             if (node.ParameterValue is VariableReference)
             {
-                ((VariableReference)node.ParameterValue).Name = $"{((VariableReference)node.ParameterValue).Name}_inliner{Inliner.variableCount}";
+                ((VariableReference)node.ParameterValue).Name = Inliner.NewName(((VariableReference)node.ParameterValue).Name);
             }
         }
 
+
         public override void Visit(StatementList node)
         {
+            //if we have a "ReturnStatement" inside stored procedures, we need to end up stored procedure code and resume the master file
+            //for this purpos, create variables and set "GOTO" lable for jump to that lable
             foreach (var returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
                 Inliner.hasReturnStatement = true;
@@ -96,6 +90,8 @@ namespace TSQL_Inliner.Method
                     StatementList = new StatementList()
                 };
 
+                //if "ReturnStatement" has Expression, we process that ...
+                //Declate variable and set value, add this variables to "returnStatementPlace" for set in top of stored procedire ...
                 if (((ReturnStatement)returnStatement).Expression != null)
                 {
                     DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
@@ -106,7 +102,7 @@ namespace TSQL_Inliner.Method
                         {
                             SqlDataTypeOption = SqlDataTypeOption.Int
                         },
-                        VariableName = new Identifier() { Value = $"@ReturnValue_inliner{Inliner.variableCount}" }
+                        VariableName = new Identifier() { Value = Inliner.NewName("@ReturnValue") }
                     });
 
                     if (Inliner.returnStatementPlace == null || Inliner.returnStatementPlace.StatementList == null)
@@ -132,6 +128,8 @@ namespace TSQL_Inliner.Method
                     });
                 }
 
+
+                //set GoToStatement on the end
                 returnBeginEndBlockStatement.StatementList.Statements.Add(new GoToStatement()
                 {
                     LabelName = new Identifier()
@@ -140,11 +138,13 @@ namespace TSQL_Inliner.Method
                         QuoteType = QuoteType.NotQuoted
                     }
                 });
+                //Replace "ReturnStatement" by new value ...
                 node.Statements[node.Statements.IndexOf(returnStatement)] = returnBeginEndBlockStatement;
             }
             base.Visit(node);
         }
 
+        //for process "IfStatement", we need to append "ThenStatement" in "BeginEndBlockStatement"
         public override void Visit(IfStatement node)
         {
             if (!(node.ThenStatement is BeginEndBlockStatement))
