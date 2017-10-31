@@ -9,8 +9,6 @@ namespace TSQL_Inliner.Method
 {
     public class Inliner
     {
-        #region variables
-
         /// <summary>
         /// Counter for make variables unique
         /// </summary>
@@ -19,11 +17,6 @@ namespace TSQL_Inliner.Method
         public static bool hasReturnStatement = false;
         public static Dictionary<ProcedureParameter, DeclareVariableElement> outputParameters;
 
-        #endregion
-
-
-
-        #region Handlers
 
         /// <summary>
         /// load inline stored procedure and handle that
@@ -31,7 +24,7 @@ namespace TSQL_Inliner.Method
         /// <param name="SPIdentifier">stored procedure identifier</param>
         /// <param name="Param">Variable Reference</param>
         /// <returns></returns>
-        public TSqlStatement HandleExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
+        public TSqlStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
         {
             TSQLReader tSQLReader = new TSQLReader();
             TSqlFragment tSqlFragment = tSQLReader.ReadTsql(schema, procedure);
@@ -46,7 +39,7 @@ namespace TSQL_Inliner.Method
             {
                 AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
                 
-                HandleParameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
+                Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
 
                 beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
             }
@@ -56,7 +49,7 @@ namespace TSQL_Inliner.Method
 
                 CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
 
-                HandleParameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), procedureParametersValues);
+                Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), procedureParametersValues);
 
                 beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
             }
@@ -64,12 +57,12 @@ namespace TSQL_Inliner.Method
             VarVisitor varVisitor = new VarVisitor();
             beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
 
-            HandleReturnStatement(beginEndBlockStatement);
+            ReturnStatement(beginEndBlockStatement);
 
             return beginEndBlockStatement;
         }
 
-        public void HandleReturnStatement(BeginEndBlockStatement beginEndBlockStatement)
+        public void ReturnStatement(BeginEndBlockStatement beginEndBlockStatement)
         {
             if (returnStatementPlace != null && returnStatementPlace.StatementList != null && returnStatementPlace.StatementList.Statements.Any())
             {
@@ -112,7 +105,7 @@ namespace TSQL_Inliner.Method
             }
         }
 
-        public void HandleParameters(BeginEndBlockStatement beginEndBlockStatement,
+        public void Parameters(BeginEndBlockStatement beginEndBlockStatement,
             List<ProcedureParameter> ProcedureParameters,
             Dictionary<string, ScalarExpression> ProcedureParametersValues)
         {
@@ -145,12 +138,10 @@ namespace TSQL_Inliner.Method
                     if (outputParameters == null)
                         outputParameters = new Dictionary<ProcedureParameter, DeclareVariableElement>();
                     outputParameters.Add(parameter, declareVariableElement);
-
                 }
             }
 
             beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
         }
-        #endregion
     }
 }

@@ -14,6 +14,23 @@ namespace TSQL_Inliner.Method
         private static bool IsFirstCreateProcedureStatement = true;
         public override void Visit(TSqlScript node)
         {
+            //CommentModel commentModel = new CommentModel();
+            //if (node.ScriptTokenStream != null)
+            //{
+            //    var comment = node.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.SingleLineComment);
+            //    if (comment != null)
+            //    {
+            //        try
+            //        {
+            //            commentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
+            //        }
+            //        catch { }
+
+            //        comment.Text = $"#InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd sdfsdfsdf";
+            //        node.ScriptTokenStream[node.ScriptTokenStream.IndexOf(comment)] = comment;
+            //    }
+            //}
+
             if (node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement) && IsFirstCreateProcedureStatement)
             {
                 IsFirstCreateProcedureStatement = false;
@@ -43,23 +60,6 @@ namespace TSQL_Inliner.Method
         /// <param name="node"></param>
         public override void Visit(StatementList node)
         {
-            CommentModel commentModel = new CommentModel();
-            if (node.ScriptTokenStream != null)
-            {
-                var comment = node.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.SingleLineComment);
-                if (comment != null)
-                {
-                    try
-                    {
-                        commentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
-                    }
-                    catch { }
-
-                    comment.Text = $"#InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd sdfsdfsdf";
-                    node.ScriptTokenStream[node.ScriptTokenStream.IndexOf(comment)] = comment;
-                }
-            }
-
             foreach (var executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
                 var executableProcedureReference = (((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);
@@ -74,7 +74,7 @@ namespace TSQL_Inliner.Method
                 //});
 
                 Inliner handler = new Inliner();
-                node.Statements[node.Statements.IndexOf(executeStatement)] = handler.HandleExecuteStatement(schemaIdentifier, baseIdentifier, param);
+                node.Statements[node.Statements.IndexOf(executeStatement)] = handler.ExecuteStatement(schemaIdentifier, baseIdentifier, param);
 
                 //beginEndBlockStatement.ScriptTokenStream.Add(new TSqlParserToken()
                 //{
@@ -92,6 +92,12 @@ namespace TSQL_Inliner.Method
         public override void Visit(VariableReference node)
         {
             node.Name = $"{node.Name}_inliner{Inliner.variableCount}";
+            base.Visit(node);
+        }
+
+        public override void Visit(DeclareVariableElement node)
+        {
+            node.VariableName.Value = $"{node.VariableName.Value}_inliner{Inliner.variableCount}";
             base.Visit(node);
         }
 
