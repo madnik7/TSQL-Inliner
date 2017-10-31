@@ -8,11 +8,11 @@ using System;
 
 namespace TSQL_Inliner.Method
 {
-    public class TSQLReader
+    public class TSQLConnection
     {
+        string sqlConnectionString = @"Data Source=localhost;Initial Catalog=test;User ID=mohsen;Password=123123;MultipleActiveResultSets=True;Application Name=EntityFramework";
         public TSqlFragment ReadTsql(string schema, string procedure)
         {
-            string sqlConnectionString = @"Data Source=localhost;Initial Catalog=test;User ID=mohsen;Password=123123;MultipleActiveResultSets=True;Application Name=EntityFramework";
             string ReadSPScript = $@"SELECT definition AS Script
                                     FROM sys.sql_modules  
                                     WHERE object_id = (OBJECT_ID(N'{schema}.{procedure}'));";
@@ -38,6 +38,15 @@ namespace TSQL_Inliner.Method
             fragment.Accept(myVisitor);
 
             return fragment;
+        }
+
+        public void WriteTsql(string script)
+        {
+            SqlConnection sqlConnection = new SqlConnection(sqlConnectionString);
+            SqlCommand sqlCommand = new SqlCommand(script, sqlConnection);
+            sqlConnection.Open();
+            SqlDataReader reader = sqlCommand.ExecuteReader();
+            sqlConnection.Close();
         }
     }
 }

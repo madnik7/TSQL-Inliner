@@ -12,8 +12,9 @@ namespace TSQL_Inliner
         static void Main(string[] args)
         {
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
-            TSQLReader tSQLReader = new TSQLReader();
-            TSqlFragment sqlFragment = tSQLReader.ReadTsql("dbo", "Main");
+            TSQLConnection tSQLConnection = new TSQLConnection();
+
+            TSqlFragment sqlFragment = tSQLConnection.ReadTsql("dbo", "Main");
 
             CommentModel commentModel = new CommentModel();
             if (sqlFragment.ScriptTokenStream != null)
@@ -33,8 +34,13 @@ namespace TSQL_Inliner
 
             sql140ScriptGenerator.GenerateScript(sqlFragment, out string str);
             str = $"-- #InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd {Environment.NewLine} {str}";
-            Console.WriteLine(str);
-            Console.ReadKey();
+
+            Console.WriteLine(str + Environment.NewLine + "=-=-=-=-=-=-=-=-=-=-=-=" + Environment.NewLine + "Execute this script ? [y/n] ");
+
+            if (Console.ReadKey().KeyChar.ToString().ToLower() == "y")
+            {
+                tSQLConnection.WriteTsql(str);
+            }
         }
     }
 }

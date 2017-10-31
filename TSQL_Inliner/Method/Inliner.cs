@@ -26,7 +26,7 @@ namespace TSQL_Inliner.Method
         /// <returns></returns>
         public TSqlStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
         {
-            TSQLReader tSQLReader = new TSQLReader();
+            TSQLConnection tSQLReader = new TSQLConnection();
             TSqlFragment tSqlFragment = tSQLReader.ReadTsql(schema, procedure);
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
