@@ -5,6 +5,10 @@ namespace TSQL_Inliner.Method
 {
     class MasterVisitor : TSqlConcreteFragmentVisitor
     {
+        public MasterVisitor()
+        {
+            IsFirstCreateProcedureStatement = true;
+        }
         //we must change "CreateProcedureStatement" to "AlterProcedureStatement" just for master stored procedure
         private static bool IsFirstCreateProcedureStatement = true;
         public override void Visit(TSqlScript node)

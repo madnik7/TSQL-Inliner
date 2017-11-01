@@ -13,32 +13,37 @@ namespace TSQL_Inliner
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
             TSQLConnection tSQLConnection = new TSQLConnection();
 
+            Console.WriteLine("Getting dbo proccedures list");
             var allSPs = tSQLConnection.GetAllStoredProcedures("dbo");
             foreach (var SPName in allSPs)
             {
-                TSqlFragment sqlFragment = tSQLConnection.ReadTsql(out CommentModel commentModel, out string topComments, "dbo", SPName);
-
-                if (!commentModel.IsOptimized && commentModel.IsOptimizable)
+                Console.Write($"Processing dbo.{SPName}, ");
+                string str = string.Empty;
+                try
                 {
-                    commentModel.IsOptimized = true;
+                    TSqlFragment sqlFragment = tSQLConnection.ReadTsql(out CommentModel commentModel, out string topComments, "dbo", SPName);
 
-                    sql140ScriptGenerator.GenerateScript(sqlFragment, out string str);
+                    if (commentModel.IsOptimized || !commentModel.IsOptimizable)
+                    {
+                        Console.WriteLine(commentModel.IsOptimized ? "AlreadyOptimised." : "Non Optimizable.");
+                        continue;
+                    }
+
+                    commentModel.IsOptimized = true;
+                    str = string.Empty;
+                    sql140ScriptGenerator.GenerateScript(sqlFragment, out str);
                     str = $"{topComments}-- #Inliner {JsonConvert.SerializeObject(commentModel)}{Environment.NewLine}{str}";
 
-                    Console.WriteLine(str + Environment.NewLine);
-                    Console.WriteLine("=-=-=-=-=-=-=-=-=-=-=-=" + Environment.NewLine + "Execute this script ? [y/n] ");
+                    tSQLConnection.WriteTsql(str);
 
-                    if (Console.ReadKey().KeyChar.ToString().ToLower() == "y")
-                    {
-                        tSQLConnection.WriteTsql(str);
-                    }
-                    Console.WriteLine(Environment.NewLine + "=-=-=-=-=-=-=-=-=-=-=-=" + Environment.NewLine);
+                    Console.WriteLine("OK.");
                 }
-                else
+                catch (Exception ex)
                 {
-                    Console.WriteLine($"this code (dbo.{SPName}) has been already optimized." + Environment.NewLine);
+                    throw ex;
                 }
             }
+
         }
     }
 }

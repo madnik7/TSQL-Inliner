@@ -1,4 +1,5 @@
 ﻿using Microsoft.SqlServer.TransactSql.ScriptDom;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TSQL_Inliner.Model;
@@ -81,7 +82,7 @@ namespace TSQL_Inliner.Method
                         {
                             SqlDataTypeOption = SqlDataTypeOption.Int
                         },
-                        VariableName = new Identifier() { Value = "@TempVariable" }
+                        VariableName = new Identifier() { Value = "@Inliner_DoNothing_" + Guid.NewGuid().ToString().Replace("-", string.Empty) }
                     });
                     beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
                     break;
