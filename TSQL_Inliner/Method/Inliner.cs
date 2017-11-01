@@ -32,7 +32,7 @@ namespace TSQL_Inliner.Method
         /// <param name="SPIdentifier">stored procedure identifier</param>
         /// <param name="Param">Variable Reference</param>
         /// <returns></returns>
-        public TSqlStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
+        public BeginEndBlockStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
         {
             TSQLConnection tSQLConnection = new TSQLConnection();
             TSqlFragment tSqlFragment = tSQLConnection.ReadTsql(out CommentModel commentModel, out string topComments, schema, procedure);
@@ -87,17 +87,6 @@ namespace TSQL_Inliner.Method
                     break;
 
                 case "none":
-                    foreach (var Batch in ((TSqlScript)tSqlFragment).Batches)
-                    {
-                        BeginEndBlockStatement beginEndBlock = new BeginEndBlockStatement()
-                        {
-                            StatementList = new StatementList()
-                        };
-                        foreach (var statement in Batch.Statements)
-                            beginEndBlock.StatementList.Statements.Add(statement);
-
-                        beginEndBlockStatement.StatementList.Statements.Add(beginEndBlock);
-                    }
                     break;
             }
 

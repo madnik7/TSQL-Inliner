@@ -46,7 +46,9 @@ namespace TSQL_Inliner.Method
                 var param = ((ExecutableProcedureReference)executableProcedureReference).Parameters.ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
 
                 Inliner inliner = new Inliner();
-                node.Statements[node.Statements.IndexOf(executeStatement)] = inliner.ExecuteStatement(schemaIdentifier, baseIdentifier, param);
+                var NewBody = inliner.ExecuteStatement(schemaIdentifier, baseIdentifier, param);
+                if (NewBody.StatementList != null && NewBody.StatementList.Statements.Any())
+                    node.Statements[node.Statements.IndexOf(executeStatement)] = NewBody;
             }
             base.Visit(node);
         }
@@ -76,7 +78,7 @@ namespace TSQL_Inliner.Method
                 ((VariableReference)node.ParameterValue).Name = Inliner.NewName(((VariableReference)node.ParameterValue).Name);
             }
         }
-        
+
         public override void Visit(StatementList node)
         {
             //if we have a "ReturnStatement" inside stored procedures, we need to end up stored procedure code and resume the master file

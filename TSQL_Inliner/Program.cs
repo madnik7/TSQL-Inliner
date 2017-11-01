@@ -20,7 +20,7 @@ namespace TSQL_Inliner
                 commentModel.IsOptimized = true;
 
                 sql140ScriptGenerator.GenerateScript(sqlFragment, out string str);
-                str = $"{topComments}-- #InlinerStart {JsonConvert.SerializeObject(commentModel)} #InlinerEnd {Environment.NewLine} {str}";
+                str = $"{topComments}-- #Inliner {JsonConvert.SerializeObject(commentModel)}{Environment.NewLine}{str}";
 
                 Console.WriteLine(str + Environment.NewLine);
                 Console.WriteLine("=-=-=-=-=-=-=-=-=-=-=-=" + Environment.NewLine + "Execute this script ? [y/n] ");

@@ -11,7 +11,7 @@ namespace TSQL_Inliner.Method
 {
     public class TSQLConnection
     {
-        protected string sqlConnectionString = @"Data Source=localhost;Initial Catalog=test;User ID=mohsen;Password=123123;MultipleActiveResultSets=True;Application Name=EntityFramework";
+        protected string sqlConnectionString = @"Integrated Security=SSPI;Initial Catalog=IcLoyalty;Data Source=localhost;";
 
         /// <summary>
         /// //Read stored procedire by schema and name
