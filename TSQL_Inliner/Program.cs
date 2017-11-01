@@ -36,8 +36,7 @@ namespace TSQL_Inliner
                 }
                 else
                 {
-                    Console.WriteLine("this code has been already optimized, press any key for exit." + Environment.NewLine);
-                    Console.ReadKey();
+                    Console.WriteLine($"this code (dbo.{SPName}) has been already optimized." + Environment.NewLine);
                 }
             }
         }
