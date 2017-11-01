@@ -20,7 +20,7 @@ namespace TSQL_Inliner.Method
         /// set new name for parameters based on level of srored procedure
         /// </summary>
         /// <param name="Name"></param>
-        /// <returns></returns>
+        /// <returns>New Name</returns>
         public static string NewName(string Name)
         {
             return $"{Name}_inliner{variableCount}";
@@ -34,40 +34,60 @@ namespace TSQL_Inliner.Method
         /// <returns></returns>
         public TSqlStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
         {
-            TSQLConnection tSQLReader = new TSQLConnection();
-            TSqlFragment tSqlFragment = tSQLReader.ReadTsql(out CommentModel commentModel, out string topComments, schema, procedure);
-            Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
+            TSQLConnection tSQLConnection = new TSQLConnection();
+            TSqlFragment tSqlFragment = tSQLConnection.ReadTsql(out CommentModel commentModel, out string topComments, schema, procedure);
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
                 StatementList = new StatementList()
             };
 
-            if (commentModel.IsOptimizable && !commentModel.IsOptimized)
+            switch (commentModel.InlineMode.ToLower())
             {
-                var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
-                if (batche != null)
-                {
-                    AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
+                case "inline":
+                    if (commentModel.IsOptimizable && !commentModel.IsOptimized)
+                    {
+                        var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
+                        if (batche != null)
+                        {
+                            AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
 
-                    Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
+                            Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
 
-                    beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
-                }
-                else
-                {
-                    batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
+                            beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+                        }
+                        else
+                        {
+                            batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
 
-                    CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
+                            CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
 
-                    Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), procedureParametersValues);
+                            Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), procedureParametersValues);
 
-                    beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
-                }
-                GoToName = $"EndOf_{schema}_{procedure}";
-                VarVisitor varVisitor = new VarVisitor();
-                beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
+                            beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+                        }
+                        GoToName = $"EndOf_{schema}_{procedure}";
+                        VarVisitor varVisitor = new VarVisitor();
+                        beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
 
-                ReturnStatement(beginEndBlockStatement);
+                        ReturnStatement(beginEndBlockStatement);
+                    }
+                    break;
+
+                case "remove":
+                    DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
+                    declareVariableStatement.Declarations.Add(new DeclareVariableElement()
+                    {
+                        DataType = new SqlDataTypeReference()
+                        {
+                            SqlDataTypeOption = SqlDataTypeOption.Int
+                        },
+                        VariableName = new Identifier() { Value = "@TempVariable" }
+                    });
+                    beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
+                    break;
+
+                case "none":
+                    break;
             }
 
             return beginEndBlockStatement;

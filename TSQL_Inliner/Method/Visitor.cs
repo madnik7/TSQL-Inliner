@@ -33,7 +33,7 @@ namespace TSQL_Inliner.Method
         }
 
         /// <summary>
-        /// override 'Visit' method for process 'StatementLists'
+        /// override 'Visit' method for process 'ExecuteStatement' in 'StatementLists'
         /// </summary>
         /// <param name="node"></param>
         public override void Visit(StatementList node)
@@ -45,8 +45,8 @@ namespace TSQL_Inliner.Method
                 var baseIdentifier = ((ExecutableProcedureReference)executableProcedureReference).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
                 var param = ((ExecutableProcedureReference)executableProcedureReference).Parameters.ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
 
-                Inliner handler = new Inliner();
-                node.Statements[node.Statements.IndexOf(executeStatement)] = handler.ExecuteStatement(schemaIdentifier, baseIdentifier, param);
+                Inliner inliner = new Inliner();
+                node.Statements[node.Statements.IndexOf(executeStatement)] = inliner.ExecuteStatement(schemaIdentifier, baseIdentifier, param);
             }
             base.Visit(node);
         }
@@ -126,7 +126,6 @@ namespace TSQL_Inliner.Method
                         }
                     });
                 }
-
 
                 //set GoToStatement on the end
                 returnBeginEndBlockStatement.StatementList.Statements.Add(new GoToStatement()
