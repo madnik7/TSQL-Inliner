@@ -87,6 +87,17 @@ namespace TSQL_Inliner.Method
                     break;
 
                 case "none":
+                    foreach (var Batch in ((TSqlScript)tSqlFragment).Batches)
+                    {
+                        BeginEndBlockStatement beginEndBlock = new BeginEndBlockStatement()
+                        {
+                            StatementList = new StatementList()
+                        };
+                        foreach (var statement in Batch.Statements)
+                            beginEndBlock.StatementList.Statements.Add(statement);
+
+                        beginEndBlockStatement.StatementList.Statements.Add(beginEndBlock);
+                    }
                     break;
             }
 

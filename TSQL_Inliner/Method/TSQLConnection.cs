@@ -48,13 +48,18 @@ namespace TSQL_Inliner.Method
             topComments = string.Empty;
             if (fragment.ScriptTokenStream != null)
             {
-                foreach (var comment in fragment.ScriptTokenStream.Where(a => a.TokenType == TSqlTokenType.SingleLineComment))
+                foreach (var comment in fragment.ScriptTokenStream.Where(a => a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment))
                 {
-                    try
+                    if (comment.Text.ToLower().Contains("#inliner"))
                     {
-                        commentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
+                        try
+                        {
+                            commentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
+                        }
+                        catch
+                        { }
                     }
-                    catch
+                    else
                     {
                         topComments += $"-- {comment}{Environment.NewLine}";
                     }
