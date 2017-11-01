@@ -9,7 +9,7 @@ namespace TSQL_Inliner.Method
         private static bool IsFirstCreateProcedureStatement = true;
         public override void Visit(TSqlScript node)
         {
-            if (node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement) && IsFirstCreateProcedureStatement)
+            if (node.Batches.Any() && node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement) && IsFirstCreateProcedureStatement)
             {
                 IsFirstCreateProcedureStatement = false;
                 CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)node.Batches.FirstOrDefault().Statements.FirstOrDefault(b => b is CreateProcedureStatement);

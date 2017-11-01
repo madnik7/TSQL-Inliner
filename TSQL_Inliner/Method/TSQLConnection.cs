@@ -48,10 +48,10 @@ namespace TSQL_Inliner.Method
             topComments = string.Empty;
             if (fragment.ScriptTokenStream != null)
             {
-                var firstCreateOrAlterLine = fragment.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.Alter || a.TokenType == TSqlTokenType.Create).Line;
+                var firstCreateOrAlterLine = fragment.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.Alter || a.TokenType == TSqlTokenType.Create);
 
                 foreach (var comment in fragment.ScriptTokenStream.Where(a => (a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment) &&
-                a.Line < firstCreateOrAlterLine))
+                a.Line < (firstCreateOrAlterLine == null ? 1 : firstCreateOrAlterLine.Line)))
                 {
                     if (comment.Text.ToLower().Contains("#inliner"))
                     {
@@ -78,6 +78,30 @@ namespace TSQL_Inliner.Method
             }
 
             return fragment;
+        }
+
+        public List<string> GetAllStoredProcedures(string schema)
+        {
+            string ReadSPScript = $@"SELECT	P.name as SPName
+                                    FROM sys.procedures AS P
+	                                INNER JOIN sys.schemas AS S ON S.schema_id = P.schema_id
+                                    WHERE	S.name = '{schema}';";
+
+            List<string> Script = new List<string>();
+
+            SqlConnection sqlConnection = new SqlConnection(sqlConnectionString);
+            SqlCommand sqlCommand = new SqlCommand(ReadSPScript, sqlConnection);
+            sqlConnection.Open();
+            using (SqlDataReader reader = sqlCommand.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    Script.Add(Convert.ToString(reader["SPName"]));
+                }
+            }
+            sqlConnection.Close();
+
+            return Script;
         }
 
         public void WriteTsql(string script)
