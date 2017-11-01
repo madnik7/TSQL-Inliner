@@ -15,7 +15,7 @@ namespace TSQL_Inliner
 
             TSqlFragment sqlFragment = tSQLConnection.ReadTsql(out CommentModel commentModel, out string topComments, "dbo", "Main");
 
-            if (!commentModel.IsOptimized)
+            if (!commentModel.IsOptimized && commentModel.IsOptimizable)
             {
                 commentModel.IsOptimized = true;
 
@@ -32,7 +32,7 @@ namespace TSQL_Inliner
             }
             else
             {
-                Console.WriteLine("this code alrady optimized, press any key for exit.");
+                Console.WriteLine("this code has been already optimized, press any key for exit.");
                 Console.ReadKey();
             }
         }

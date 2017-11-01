@@ -48,7 +48,10 @@ namespace TSQL_Inliner.Method
             topComments = string.Empty;
             if (fragment.ScriptTokenStream != null)
             {
-                foreach (var comment in fragment.ScriptTokenStream.Where(a => a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment))
+                var firstCreateOrAlterLine = fragment.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.Alter || a.TokenType == TSqlTokenType.Create).Line;
+
+                foreach (var comment in fragment.ScriptTokenStream.Where(a => (a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment) &&
+                a.Line < firstCreateOrAlterLine))
                 {
                     if (comment.Text.ToLower().Contains("#inliner"))
                     {
@@ -56,12 +59,14 @@ namespace TSQL_Inliner.Method
                         {
                             commentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
                         }
-                        catch
-                        { }
+                        catch (Exception ex)
+                        {
+                            throw new Exception($"could not parse #inliner at: {schema}.{procedure}{Environment.NewLine}", ex);
+                        }
                     }
                     else
                     {
-                        topComments += $"-- {comment}{Environment.NewLine}";
+                        topComments += $"{comment.Text}{Environment.NewLine}";
                     }
                 }
             }
