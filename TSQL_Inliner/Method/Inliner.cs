@@ -33,7 +33,7 @@ namespace TSQL_Inliner.Method
         /// <param name="SPIdentifier">stored procedure identifier</param>
         /// <param name="Param">Variable Reference</param>
         /// <returns></returns>
-        public BeginEndBlockStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> procedureParametersValues)
+        public BeginEndBlockStatement ExecuteStatement(string schema, string procedure, Dictionary<string, ScalarExpression> namedValues, List<ScalarExpression> unnamedValues)
         {
             TSQLConnection tSQLConnection = new TSQLConnection();
             TSqlFragment tSqlFragment = tSQLConnection.ReadTsql(out CommentModel commentModel, out string topComments, schema, procedure);
@@ -52,7 +52,7 @@ namespace TSQL_Inliner.Method
                         {
                             AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
 
-                            Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), procedureParametersValues);
+                            Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
 
                             beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                         }
@@ -62,11 +62,13 @@ namespace TSQL_Inliner.Method
 
                             CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
 
-                            Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), procedureParametersValues);
+                            Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
 
                             beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                         }
+
                         GoToName = $"EndOf_{schema}_{procedure}";
+
                         VarVisitor varVisitor = new VarVisitor();
                         beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(varVisitor);
 
@@ -137,11 +139,11 @@ namespace TSQL_Inliner.Method
             }
         }
 
-        public void Parameters(BeginEndBlockStatement beginEndBlockStatement,
-            List<ProcedureParameter> ProcedureParameters,
-            Dictionary<string, ScalarExpression> ProcedureParametersValues)
+        public void Parameters(BeginEndBlockStatement beginEndBlockStatement, List<ProcedureParameter> ProcedureParameters,
+            Dictionary<string, ScalarExpression> namedValues, List<ScalarExpression> unnamedValues)
         {
             variableCount++;
+            int unnamedValuesCounter = 0;
             DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
             foreach (var parameter in ProcedureParameters)
             {
@@ -153,16 +155,18 @@ namespace TSQL_Inliner.Method
                     Value = parameter.Value
                 };
 
-                if (ProcedureParametersValues.Any(a => a.Key == declareVariableElement.VariableName.Value))
+                if (unnamedValues != null && unnamedValues.Any() && unnamedValuesCounter < unnamedValues.Count())
                 {
-                    declareVariableElement.Value = ProcedureParametersValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value;
+                    declareVariableElement.Value = unnamedValues[unnamedValuesCounter++];
                 }
                 else
                 {
-                    declareVariableElement.Value = null;
+                    declareVariableElement.Value = namedValues.Any(a => a.Key == declareVariableElement.VariableName.Value) ?
+                    namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value : null;
                 }
 
                 declareVariableElement.VariableName.Value = Inliner.NewName(parameter.VariableName.Value);
+
                 declareVariableStatement.Declarations.Add(declareVariableElement);
 
                 if (parameter.Modifier == ParameterModifier.Output)

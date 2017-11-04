@@ -44,13 +44,14 @@ namespace TSQL_Inliner.Method
         {
             foreach (var executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
-                var executableProcedureReference = (((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);
-                var schemaIdentifier = ((ExecutableProcedureReference)executableProcedureReference).ProcedureReference.ProcedureReference.Name.SchemaIdentifier.Value;
-                var baseIdentifier = ((ExecutableProcedureReference)executableProcedureReference).ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
-                var param = ((ExecutableProcedureReference)executableProcedureReference).Parameters.ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
+                var executableProcedureReference = (ExecutableProcedureReference)(((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);
+                var schemaIdentifier = executableProcedureReference.ProcedureReference.ProcedureReference.Name.SchemaIdentifier.Value;
+                var baseIdentifier = executableProcedureReference.ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value;
+                var namedValues = executableProcedureReference.Parameters.Where(a => a.Variable != null && !string.IsNullOrEmpty(a.Variable.Name)).ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
+                var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
 
                 Inliner inliner = new Inliner();
-                var NewBody = inliner.ExecuteStatement(schemaIdentifier, baseIdentifier, param);
+                var NewBody = inliner.ExecuteStatement(schemaIdentifier, baseIdentifier, namedValues, unnamedValues);
                 if (NewBody.StatementList != null && NewBody.StatementList.Statements.Any())
                     node.Statements[node.Statements.IndexOf(executeStatement)] = NewBody;
             }
