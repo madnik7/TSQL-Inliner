@@ -10,7 +10,7 @@ namespace TSQL_Inliner.Model
     {
         public CommentModel()
         {
-            this.InlineMode = "None";               
+            this.InlineMode = "Inline";               
             this.IsOptimizable = true;
             this.IsOptimized = false;
         }

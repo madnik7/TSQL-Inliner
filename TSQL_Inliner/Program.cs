@@ -15,7 +15,7 @@ namespace TSQL_Inliner
             TSQLConnection tSQLConnection = new TSQLConnection();
 
             Console.WriteLine("Getting dbo proccedures list");
-            var allSPs = tSQLConnection.GetAllStoredProcedures("dbo").Where(a => a.ToLower() == "main");
+            var allSPs = tSQLConnection.GetAllStoredProcedures("dbo");
             foreach (var SPName in allSPs)
             {
                 Console.Write($"Processing dbo.{SPName}, ");
@@ -45,6 +45,7 @@ namespace TSQL_Inliner
                     Console.ResetColor();
                 }
             }
+            Console.WriteLine($"{Environment.NewLine}=-=-=-=-=-=-=-=-=-=-={Environment.NewLine}Press any key to exit ...");
             Console.ReadKey();
         }
     }
