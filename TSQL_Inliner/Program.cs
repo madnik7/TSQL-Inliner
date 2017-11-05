@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Linq;
 using TSQL_Inliner.Model;
-using TSQL_Inliner.Process;
+using TSQL_Inliner.Inliner;
+using TSQL_Inliner.ProcOptimization;
 
 namespace TSQL_Inliner
 {
     public class Program
     {
-        public static Inliner Inliner { get; set; }
+        public static ProcOptimizer ProcOptimizer { get; set; }
         static void Main(string[] args)
         {
             TSQLConnection tSQLConnection = new TSQLConnection();
-            Inliner = new Inliner(tSQLConnection);
+            ProcOptimizer = new ProcOptimizer(tSQLConnection);
 
             Console.WriteLine("Getting dbo proccedures list");
 
@@ -21,10 +22,10 @@ namespace TSQL_Inliner
 
             foreach (var spInfo in allSPs)
             {
-                Inliner.Process(spInfo);
+                ProcOptimizer.Process(spInfo);
             }
-            Console.WriteLine($"{Environment.NewLine}=-=-=-=-=-=-=-=-=-=-={Environment.NewLine}Press any key to exit ...");
-            Console.ReadKey();
+            //Console.WriteLine($"{Environment.NewLine}=-=-=-=-=-=-=-=-=-=-={Environment.NewLine}Press any key to exit ...");
+            //Console.ReadKey();
         }
     }
 }

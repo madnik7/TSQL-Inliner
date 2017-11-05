@@ -3,7 +3,7 @@ using System.Data.SqlClient;
 using TSQL_Inliner.Model;
 using System;
 
-namespace TSQL_Inliner.Process
+namespace TSQL_Inliner
 {
     public class TSQLConnection
     {

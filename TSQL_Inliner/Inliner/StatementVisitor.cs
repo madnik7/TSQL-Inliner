@@ -1,8 +1,9 @@
 ﻿using System.Linq;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
-using TSQL_Inliner.Process;
+using TSQL_Inliner.Inliner;
+using TSQL_Inliner.Model;
 
-namespace TSQL_Inliner.Visitor
+namespace TSQL_Inliner.Inliner
 {
     public class StatementVisitor : TSqlConcreteFragmentVisitor
     {
@@ -15,14 +16,14 @@ namespace TSQL_Inliner.Visitor
         //Rename "VariableReference"s
         public override void Visit(VariableReference node)
         {
-            node.Name = Program.Inliner.NewName(node.Name);
+            node.Name = Program.ProcOptimizer.NewName(node.Name);
             base.Visit(node);
         }
 
         //Rename "DeclareVariableElement"s
         public override void Visit(DeclareVariableElement node)
         {
-            node.VariableName.Value = Program.Inliner.NewName(node.VariableName.Value);
+            node.VariableName.Value = Program.ProcOptimizer.NewName(node.VariableName.Value);
             base.Visit(node);
         }
 
@@ -31,7 +32,7 @@ namespace TSQL_Inliner.Visitor
         {
             if (node.ParameterValue is VariableReference)
             {
-                ((VariableReference)node.ParameterValue).Name = Program.Inliner.NewName(((VariableReference)node.ParameterValue).Name);
+                ((VariableReference)node.ParameterValue).Name = Program.ProcOptimizer.NewName(((VariableReference)node.ParameterValue).Name);
             }
         }
 
@@ -41,7 +42,7 @@ namespace TSQL_Inliner.Visitor
             //for this purpos, create variables and set "GOTO" lable for jump to that lable
             foreach (var returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
-                Program.Inliner.hasReturnStatement = true;
+                Program.ProcOptimizer.hasReturnStatement = true;
                 BeginEndBlockStatement returnBeginEndBlockStatement = new BeginEndBlockStatement()
                 {
                     StatementList = new StatementList()
@@ -59,7 +60,7 @@ namespace TSQL_Inliner.Visitor
                         {
                             SqlDataTypeOption = SqlDataTypeOption.Int
                         },
-                        VariableName = new Identifier() { Value = Program.Inliner.NewName("@ReturnValue") }
+                        VariableName = new Identifier() { Value = Program.ProcOptimizer.NewName("@ReturnValue") }
                     });
 
                     if (_returnStatementPlace == null || _returnStatementPlace.StatementList == null)
@@ -90,7 +91,7 @@ namespace TSQL_Inliner.Visitor
                 {
                     LabelName = new Identifier()
                     {
-                        Value = Program.Inliner.GoToName,
+                        Value = Program.ProcOptimizer.GoToName,
                         QuoteType = QuoteType.NotQuoted
                     }
                 });

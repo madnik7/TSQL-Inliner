@@ -50,15 +50,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="Process\Inliner.cs" />
+    <Compile Include="Inliner\ProcInliner.cs" />
+    <Compile Include="ProcOptimization\ProcOptimizer.cs" />
     <Compile Include="Model\SpInfo.cs" />
-    <Compile Include="Process\TSQLConnection.cs" />
-    <Compile Include="Visitor\ExecuteVisitor.cs" />
+    <Compile Include="TSQLConnection.cs" />
+    <Compile Include="ProcOptimization\ExecuteVisitor.cs" />
     <Compile Include="Model\CommentModel.cs" />
     <Compile Include="Model\ProcModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Visitor\StatementVisitor.cs" />
+    <Compile Include="Inliner\StatementVisitor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

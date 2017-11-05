@@ -5,11 +5,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using TSQL_Inliner.Model;
-using TSQL_Inliner.Visitor;
 
-namespace TSQL_Inliner.Process
+namespace TSQL_Inliner.ProcOptimization
 {
-    public class Inliner
+    public class ProcOptimizer
     {
         public TSQLConnection TSQLConnection { get; private set; }
         public int VariableCount { get; private set; }
@@ -17,7 +16,7 @@ namespace TSQL_Inliner.Process
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
 
-        public Inliner(TSQLConnection tSQLConnection)
+        public ProcOptimizer(TSQLConnection tSQLConnection)
         {
             VariableCount = 0;
             TSQLConnection = tSQLConnection;
@@ -38,7 +37,7 @@ namespace TSQL_Inliner.Process
         /// <returns>New Name</returns>
         public string NewName(string Name)
         {
-            return $"{Name}_inliner{Program.Inliner.VariableCount}";
+            return $"{Name}_inliner{Program.ProcOptimizer.VariableCount}";
         }
 
         public void Process(SpInfo spInfo)
