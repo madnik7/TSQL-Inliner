@@ -50,12 +50,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="Method\Inliner.cs" />
-    <Compile Include="Method\TSQLConnection.cs" />
-    <Compile Include="Method\Visitor.cs" />
+    <Compile Include="Process\Inliner.cs" />
+    <Compile Include="Model\SpInfo.cs" />
+    <Compile Include="Process\TSQLConnection.cs" />
+    <Compile Include="Visitor\ExecuteVisitor.cs" />
     <Compile Include="Model\CommentModel.cs" />
+    <Compile Include="Model\ProcModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Visitor\StatementVisitor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
