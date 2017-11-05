@@ -12,10 +12,13 @@ namespace TSQL_Inliner.Inliner
         Dictionary<ProcedureParameter, DeclareVariableElement> OutputParameters { get; set; }
         StatementVisitor StatementVisitor { get; set; }
         ProcOptimizer ProcOptimizer { get { return Program.ProcOptimizer; } }
+        int VariableCounter;
 
-        public ExecuteInliner()        {
-
-            StatementVisitor = new StatementVisitor();
+        public ExecuteInliner()
+        {
+            Program.ProcOptimizer.IncreaseVariableCounter();
+            VariableCounter = Program.ProcOptimizer.VariableCounter;
+            StatementVisitor = new StatementVisitor(VariableCounter);
         }
 
         /// <summary>
@@ -136,8 +139,6 @@ namespace TSQL_Inliner.Inliner
         public void Parameters(BeginEndBlockStatement beginEndBlockStatement, List<ProcedureParameter> ProcedureParameters,
             Dictionary<string, ScalarExpression> namedValues, List<ScalarExpression> unnamedValues)
         {
-            ProcOptimizer.IncreaseVariableCounter();
-
             int unnamedValuesCounter = 0;
             DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
             foreach (var parameter in ProcedureParameters)
@@ -160,7 +161,7 @@ namespace TSQL_Inliner.Inliner
                     namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value : null;
                 }
 
-                declareVariableElement.VariableName.Value = ProcOptimizer.NewName(parameter.VariableName.Value);
+                declareVariableElement.VariableName.Value = ProcOptimizer.BuildNewName(parameter.VariableName.Value, VariableCounter);
 
                 declareVariableStatement.Declarations.Add(declareVariableElement);
 

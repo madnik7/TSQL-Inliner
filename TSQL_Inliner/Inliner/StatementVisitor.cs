@@ -6,22 +6,24 @@ namespace TSQL_Inliner.Inliner
     public class StatementVisitor : TSqlConcreteFragmentVisitor
     {
         public BeginEndBlockStatement _returnStatementPlace { get; set; }
+        int VariableCounter;
 
-        public StatementVisitor()
+        public StatementVisitor(int variableCounter)
         {
+            VariableCounter = variableCounter;
             _returnStatementPlace = new BeginEndBlockStatement();
         }
         //Rename "VariableReference"s
         public override void Visit(VariableReference node)
         {
-            node.Name = Program.ProcOptimizer.NewName(node.Name);
+            node.Name = Program.ProcOptimizer.BuildNewName(node.Name, VariableCounter);
             base.Visit(node);
         }
 
         //Rename "DeclareVariableElement"s
         public override void Visit(DeclareVariableElement node)
         {
-            node.VariableName.Value = Program.ProcOptimizer.NewName(node.VariableName.Value);
+            node.VariableName.Value = Program.ProcOptimizer.BuildNewName(node.VariableName.Value, VariableCounter);
             base.Visit(node);
         }
 
@@ -29,7 +31,7 @@ namespace TSQL_Inliner.Inliner
         public override void ExplicitVisit(ExecuteParameter node)
         {
             if (node.ParameterValue is VariableReference)
-                ((VariableReference)node.ParameterValue).Name = Program.ProcOptimizer.NewName(((VariableReference)node.ParameterValue).Name);
+                ((VariableReference)node.ParameterValue).Name = Program.ProcOptimizer.BuildNewName(((VariableReference)node.ParameterValue).Name, VariableCounter);
         }
 
         public override void Visit(StatementList node)
@@ -56,7 +58,7 @@ namespace TSQL_Inliner.Inliner
                         {
                             SqlDataTypeOption = SqlDataTypeOption.Int
                         },
-                        VariableName = new Identifier() { Value = Program.ProcOptimizer.NewName("@ReturnValue") }
+                        VariableName = new Identifier() { Value = Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter) }
                     });
 
                     if (_returnStatementPlace == null || _returnStatementPlace.StatementList == null)

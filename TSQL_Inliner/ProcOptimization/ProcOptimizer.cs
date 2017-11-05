@@ -33,13 +33,13 @@ namespace TSQL_Inliner.ProcOptimization
         /// <summary>
         /// set new name for parameters based on level of stored procedure
         /// </summary>
-        /// <param name="Name"></param>
+        /// <param name="name"></param>
         /// <returns>New Name</returns>
-        public string NewName(string Name)
+        public string BuildNewName(string name, int counter)
         {
-            if (Name.ToLower().Contains("_inliner"))
-                return $"{Name}_{ Program.ProcOptimizer.VariableCounter}";
-            return $"{Name}_inliner{Program.ProcOptimizer.VariableCounter}";
+            if (name.ToLower().Contains("_inliner"))
+                return $"{name}_{ counter}";
+            return $"{name}_inliner{counter}";
         }
 
         public void Process(SpInfo spInfo)
