@@ -138,7 +138,7 @@ namespace TSQL_Inliner.Inliner
         public void Parameters(BeginEndBlockStatement beginEndBlockStatement, List<ProcedureParameter> ProcedureParameters,
             Dictionary<string, ScalarExpression> namedValues, List<ScalarExpression> unnamedValues)
         {
-            ProcOptimizer.IncreaseVariableCount();
+            ProcOptimizer.IncreaseVariableCounter();
 
             int unnamedValuesCounter = 0;
             DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();

@@ -25,7 +25,7 @@ namespace TSQL_Inliner.ProcOptimization
             ProcessedProcdures = new List<string>();
         }
 
-        public void IncreaseVariableCount()
+        public void IncreaseVariableCounter()
         {
             VariableCounter++;
         }
@@ -37,8 +37,8 @@ namespace TSQL_Inliner.ProcOptimization
         /// <returns>New Name</returns>
         public string NewName(string Name)
         {
-            //if (Name.ToLower().Contains("_inliner"))
-            //    Name = Name.Substring(0, Name.IndexOf("_inliner"));
+            if (Name.ToLower().Contains("_inliner"))
+                return $"{Name}_{ Program.ProcOptimizer.VariableCounter}";
             return $"{Name}_inliner{Program.ProcOptimizer.VariableCounter}";
         }
 
