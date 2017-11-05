@@ -1,7 +1,5 @@
 ﻿using System.Linq;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
-using TSQL_Inliner.Inliner;
-using TSQL_Inliner.Model;
 
 namespace TSQL_Inliner.Inliner
 {
@@ -31,9 +29,7 @@ namespace TSQL_Inliner.Inliner
         public override void ExplicitVisit(ExecuteParameter node)
         {
             if (node.ParameterValue is VariableReference)
-            {
                 ((VariableReference)node.ParameterValue).Name = Program.ProcOptimizer.NewName(((VariableReference)node.ParameterValue).Name);
-            }
         }
 
         public override void Visit(StatementList node)
