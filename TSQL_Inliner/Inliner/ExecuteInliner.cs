@@ -9,13 +9,13 @@ using TSQL_Inliner.ProcOptimization;
 
 namespace TSQL_Inliner.Inliner
 {
-    public class ProcInliner
+    public class ExecuteInliner
     {
         Dictionary<ProcedureParameter, DeclareVariableElement> OutputParameters { get; set; }
         StatementVisitor StatementVisitor { get; set; }
         ProcOptimizer ProcOptimizer { get { return Program.ProcOptimizer; } }
 
-        public ProcInliner()        {
+        public ExecuteInliner()        {
 
             StatementVisitor = new StatementVisitor();
         }

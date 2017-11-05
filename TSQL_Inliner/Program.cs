@@ -25,7 +25,7 @@ namespace TSQL_Inliner
                 ProcOptimizer.Process(spInfo);
             }
             //Console.WriteLine($"{Environment.NewLine}=-=-=-=-=-=-=-=-=-=-={Environment.NewLine}Press any key to exit ...");
-            //Console.ReadKey();
+            Console.ReadKey();
         }
     }
 }

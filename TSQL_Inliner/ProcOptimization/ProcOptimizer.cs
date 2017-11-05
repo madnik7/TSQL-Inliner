@@ -11,14 +11,14 @@ namespace TSQL_Inliner.ProcOptimization
     public class ProcOptimizer
     {
         public TSQLConnection TSQLConnection { get; private set; }
-        public int VariableCount { get; private set; }
+        public int VariableCounter { get; private set; }
         public bool hasReturnStatement { get; set; }
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
 
         public ProcOptimizer(TSQLConnection tSQLConnection)
         {
-            VariableCount = 0;
+            VariableCounter = 0;
             TSQLConnection = tSQLConnection;
             GoToName = string.Empty;
             hasReturnStatement = false;
@@ -27,7 +27,7 @@ namespace TSQL_Inliner.ProcOptimization
 
         public void IncreaseVariableCount()
         {
-            VariableCount++;
+            VariableCounter++;
         }
 
         /// <summary>
@@ -37,14 +37,16 @@ namespace TSQL_Inliner.ProcOptimization
         /// <returns>New Name</returns>
         public string NewName(string Name)
         {
-            return $"{Name}_inliner{Program.ProcOptimizer.VariableCount}";
+            //if (Name.ToLower().Contains("_inliner"))
+            //    Name = Name.Substring(0, Name.IndexOf("_inliner"));
+            return $"{Name}_inliner{Program.ProcOptimizer.VariableCounter}";
         }
 
         public void Process(SpInfo spInfo)
         {
             try
             {
-                Console.Write($"Processing {spInfo.Schema}.{spInfo.Name}, ");
+                Console.Write($"\nProcessing {spInfo.Schema}.{spInfo.Name}");
 
                 var newScript = ProcessScript(spInfo);
                 if (newScript != null)
@@ -79,14 +81,17 @@ namespace TSQL_Inliner.ProcOptimization
         public ProcModel ProcessScriptImpl(SpInfo spInfo)
         {
             ProcModel procModel = GetProcModel(spInfo);
-            if (procModel.CommentModel.IsOptimizable)
+            if (procModel.CommentModel.IsOptimizable && !procModel.CommentModel.IsOptimized)
             {
-                ExecuteVisitor executeVisitor = new ExecuteVisitor(procModel.CommentModel.IsOptimized);
+                Console.Write($"... ");
+
+                ExecuteVisitor executeVisitor = new ExecuteVisitor();
                 procModel.TSqlFragment.Accept(executeVisitor);
+
                 return procModel;
             }
 
-            Console.WriteLine(procModel.CommentModel.IsOptimized ? "Already optimized." : "Non optimizable.");
+            Console.WriteLine(procModel.CommentModel.IsOptimized ? ", Already optimized." : ", Not Optimizable.");
             return null;
         }
 
