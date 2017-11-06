@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Inliner\ExecuteInliner.cs" />
+    <Compile Include="Model\AppArgument.cs" />
     <Compile Include="ProcOptimization\ProcOptimizer.cs" />
     <Compile Include="Model\SpInfo.cs" />
     <Compile Include="TSQLConnection.cs" />
