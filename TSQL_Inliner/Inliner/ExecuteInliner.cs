@@ -34,60 +34,62 @@ namespace TSQL_Inliner.Inliner
             var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
 
             TSQLConnection tSQLConnection = new TSQLConnection();
-            ProcModel procModel = ProcOptimizer.GetProcModel(spInfo);
-            TSqlFragment tSqlFragment = procModel.TSqlFragment;
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
                 StatementList = new StatementList()
             };
-
-            switch (procModel.CommentModel.InlineMode.ToLower())
+            ProcModel procModel = ProcOptimizer.GetProcModel(spInfo);
+            if (procModel.TSqlFragment != null)
             {
-                case "inline":
-                    var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
-                    if (batche != null)
-                    {
-                        AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
+                TSqlFragment tSqlFragment = procModel.TSqlFragment;                
 
-                        Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
-
-                        beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
-                    }
-                    else
-                    {
-                        batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
-
-                        CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
-
-                        Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
-
-                        beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
-                    }
-
-                    ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{procModel.SpInfo.Schema}_{procModel.SpInfo.Name}", VariableCounter);
-
-                    beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
-
-                    ReturnStatement(beginEndBlockStatement);
-                    break;
-
-                case "remove":
-                    DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
-                    declareVariableStatement.Declarations.Add(new DeclareVariableElement()
-                    {
-                        DataType = new SqlDataTypeReference()
+                switch (procModel.CommentModel.InlineMode.ToLower())
+                {
+                    case "inline":
+                        var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
+                        if (batche != null)
                         {
-                            SqlDataTypeOption = SqlDataTypeOption.Int
-                        },
-                        VariableName = new Identifier() { Value = "@Inliner_DoNothing_" + Guid.NewGuid().ToString().Replace("-", string.Empty) }
-                    });
-                    beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
-                    break;
+                            AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
 
-                case "none":
-                    break;
+                            Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
+
+                            beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+                        }
+                        else
+                        {
+                            batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
+
+                            CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
+
+                            Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
+
+                            beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+                        }
+
+                        ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{procModel.SpInfo.Schema}_{procModel.SpInfo.Name}", VariableCounter);
+
+                        beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
+
+                        ReturnStatement(beginEndBlockStatement);
+                        break;
+
+                    case "remove":
+                        DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
+                        declareVariableStatement.Declarations.Add(new DeclareVariableElement()
+                        {
+                            DataType = new SqlDataTypeReference()
+                            {
+                                SqlDataTypeOption = SqlDataTypeOption.Int
+                            },
+                            VariableName = new Identifier() { Value = "@Inliner_DoNothing_" + Guid.NewGuid().ToString().Replace("-", string.Empty) }
+                        });
+                        beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
+                        break;
+
+                    case "none":
+                        break;
+                }
             }
-
             return beginEndBlockStatement;
         }
 

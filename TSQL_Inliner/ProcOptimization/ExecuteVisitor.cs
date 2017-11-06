@@ -48,7 +48,6 @@ namespace TSQL_Inliner.ProcOptimization
                 var executableProcedureReference = (ExecutableProcedureReference)(((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);
                 if (executableProcedureReference.ProcedureReference.ProcedureReference.Name.DatabaseIdentifier == null)
                 {
-                    var ddddds = JsonConvert.SerializeObject(executableProcedureReference);
                     var newBody = ExecuteStatement(executableProcedureReference);
                     if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
                     {

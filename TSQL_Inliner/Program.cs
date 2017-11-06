@@ -17,7 +17,7 @@ namespace TSQL_Inliner
             Console.WriteLine("Getting dbo proccedures list");
 
             var allSPs = tSQLConnection.GetAllStoredProcedures("dbo")
-                //.Where(a => a.ToLower() == "main")// just for testing operations
+                .Where(a => a.ToLower() == "main")// just for testing operations
                 .Select(a => new SpInfo() { Schema = "dbo", Name = a });
 
             foreach (var spInfo in allSPs)

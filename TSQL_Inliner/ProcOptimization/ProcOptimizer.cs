@@ -73,7 +73,7 @@ namespace TSQL_Inliner.ProcOptimization
             sql140ScriptGenerator.GenerateScript(procModel.TSqlFragment, out string script);
 
             procModel.CommentModel.IsOptimized = true;
-            script = $"{procModel.TopComments}-- #Inliner {JsonConvert.SerializeObject(procModel.CommentModel)}{Environment.NewLine}{script}";
+            script = $"{procModel.TopComments}-- #Inliner {JsonConvert.SerializeObject(procModel.CommentModel)}{Environment.NewLine}{script.Replace(" THROW ", " ;THROW ")}";
 
             return script;
         }
@@ -81,6 +81,12 @@ namespace TSQL_Inliner.ProcOptimization
         public ProcModel ProcessScriptImpl(SpInfo spInfo)
         {
             ProcModel procModel = GetProcModel(spInfo);
+            if (procModel.TSqlFragment == null)
+            {
+                Console.WriteLine("Not Found.");
+                return null;
+            }
+
             if (procModel.CommentModel.IsOptimizable && !procModel.CommentModel.IsOptimized)
             {
                 Console.Write($"... ");
@@ -103,34 +109,36 @@ namespace TSQL_Inliner.ProcOptimization
             {
                 SpInfo = spInfo
             };
-            var fragment = parser.Parse(new StringReader(script), out IList<ParseError> errors);
-            if (fragment.ScriptTokenStream != null)
+            if (script != null)
             {
-                //Read all comment befor the first "Create" or "Alter"
-                var firstCreateOrAlterLine = fragment.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.Alter || a.TokenType == TSqlTokenType.Create);
-
-                foreach (var comment in fragment.ScriptTokenStream.Where(a => (a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment) &&
-                a.Line < (firstCreateOrAlterLine == null ? 1 : firstCreateOrAlterLine.Line)))
+                var fragment = parser.Parse(new StringReader(script), out IList<ParseError> errors);
+                if (fragment.ScriptTokenStream != null)
                 {
-                    if (comment.Text.ToLower().Contains("#inliner"))
-                    {
-                        try
-                        {
-                            procModel.CommentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new Exception($"could not parse #inliner at: {spInfo.Schema}.{spInfo.Name}{Environment.NewLine}", ex);
-                        }
-                    }
-                    else
-                    {
-                        procModel.TopComments += $"{comment.Text}{Environment.NewLine}";
-                    }
-                }
-                procModel.TSqlFragment = fragment;
-            }
+                    //Read all comment befor the first "Create" or "Alter"
+                    var firstCreateOrAlterLine = fragment.ScriptTokenStream.FirstOrDefault(a => a.TokenType == TSqlTokenType.Alter || a.TokenType == TSqlTokenType.Create);
 
+                    foreach (var comment in fragment.ScriptTokenStream.Where(a => (a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment) &&
+                    a.Line < (firstCreateOrAlterLine == null ? 1 : firstCreateOrAlterLine.Line)))
+                    {
+                        if (comment.Text.ToLower().Contains("#inliner"))
+                        {
+                            try
+                            {
+                                procModel.CommentModel = JsonConvert.DeserializeObject<CommentModel>(comment.Text.Substring(comment.Text.IndexOf('{'), comment.Text.LastIndexOf('}') - comment.Text.IndexOf('{') + 1));
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new Exception($"could not parse #inliner at: {spInfo.Schema}.{spInfo.Name}{Environment.NewLine}", ex);
+                            }
+                        }
+                        else
+                        {
+                            procModel.TopComments += $"{comment.Text}{Environment.NewLine}";
+                        }
+                    }
+                    procModel.TSqlFragment = fragment;
+                }
+            }
             return procModel;
         }
     }
