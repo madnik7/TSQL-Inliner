@@ -39,6 +39,15 @@ namespace TSQL_Inliner.Inliner
             base.Visit(node);
         }
 
+        public override void Visit(ReturnStatement node)
+        {
+            node.Expression = node.Expression ?? new IntegerLiteral()
+            {
+                Value = "0"                 
+            };
+            base.Visit(node);
+        }
+
         //Rename "VariableReference"s of "ExecuteParameter"
         public override void ExplicitVisit(ExecuteParameter node)
         {
