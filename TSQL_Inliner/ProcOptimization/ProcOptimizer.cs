@@ -74,7 +74,7 @@ namespace TSQL_Inliner.ProcOptimization
             sql140ScriptGenerator.GenerateScript(procModel.TSqlFragment, out string script);
 
             procModel.CommentModel.IsOptimized = true;
-            Regex regex = new Regex(@"\bEND\b"); 
+            Regex regex = new Regex(@"\bEND\b");
             script = $"{procModel.TopComments}-- #Inliner {JsonConvert.SerializeObject(procModel.CommentModel)}{Environment.NewLine}" +
                 $"{regex.Replace(script, "END;").Replace("END; TRY", "END TRY").Replace("END; CATCH", "END CATCH")}";
 

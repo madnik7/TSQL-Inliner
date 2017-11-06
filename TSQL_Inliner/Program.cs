@@ -15,7 +15,7 @@ namespace TSQL_Inliner
             Console.WriteLine("inline TSQL procedures and functions.");
             Console.WriteLine("");
             Console.WriteLine("");
-            Console.WriteLine("tsql_inliner /connectionString connectionString /dbname dbname /schema schema [/procName procName]");
+            Console.WriteLine("tsql_inliner /connectionString connectionString /schema schema [/procName procName]");
             Console.WriteLine("");
             Console.WriteLine("  connectionString\t SQL Server connection string.");
             Console.WriteLine("  schema\t\t the schema of the database. Default is dbo.");

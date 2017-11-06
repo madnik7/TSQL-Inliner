@@ -50,7 +50,7 @@ namespace TSQL_Inliner.Inliner
         {
             //if we have a "ReturnStatement" inside stored procedures, we need to end up stored procedure code and resume the master file
             //for this purpos, create variables and set "GOTO" lable for jump to that lable
-            foreach (var returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
+            foreach (ReturnStatement returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
                 //Program.ProcOptimizer.hasReturnStatement = true;
                 BeginEndBlockStatement returnBeginEndBlockStatement = new BeginEndBlockStatement()
@@ -60,7 +60,7 @@ namespace TSQL_Inliner.Inliner
 
                 //if "ReturnStatement" has Expression, we process that ...
                 //Declate variable and set value, add this variables to "returnStatementPlace" for set in top of stored procedire ...
-                if (((ReturnStatement)returnStatement).Expression != null)
+                if ((returnStatement).Expression != null)
                 {
                     DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
 
@@ -89,9 +89,9 @@ namespace TSQL_Inliner.Inliner
                         },
                         Expression = new IntegerLiteral()
                         {
-                            Value = ((ReturnStatement)returnStatement).Expression is VariableReference ?
-                            ((VariableReference)((ReturnStatement)returnStatement).Expression).Name :
-                            (((ReturnStatement)returnStatement).Expression != null ? ((IntegerLiteral)((ReturnStatement)returnStatement).Expression).Value : "0")
+                            Value = (returnStatement).Expression is VariableReference ?
+                            ((VariableReference)(returnStatement).Expression).Name :
+                            ((returnStatement).Expression != null ? ((IntegerLiteral)(returnStatement).Expression).Value : "0")
                         }
                     });
                 }

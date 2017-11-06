@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using TSQL_Inliner.Model;
 using TSQL_Inliner.Inliner;
-using Newtonsoft.Json;
 
 namespace TSQL_Inliner.ProcOptimization
 {
@@ -43,9 +42,9 @@ namespace TSQL_Inliner.ProcOptimization
         public override void Visit(StatementList node)
         {
             //StatementListCollection.Add(node);
-            foreach (var executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
+            foreach (ExecuteStatement executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
-                var executableProcedureReference = (ExecutableProcedureReference)(((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);
+                var executableProcedureReference = (ExecutableProcedureReference)((executeStatement).ExecuteSpecification.ExecutableEntity);
                 if (executableProcedureReference.ProcedureReference.ProcedureReference.Name.DatabaseIdentifier == null)
                 {
                     var newBody = ExecuteStatement(executableProcedureReference);
