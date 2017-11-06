@@ -7,7 +7,14 @@ namespace TSQL_Inliner
 {
     public class TSQLConnection
     {
-        protected string sqlConnectionString = @"Integrated Security=SSPI;Initial Catalog=IcLoyalty;Data Source=localhost;";
+        //public string SqlConnectionString = @"Integrated Security=SSPI;Initial Catalog=IcUserService;Data Source=localhost;";
+
+        public string ConnectionString { get; private set; }
+
+        public TSQLConnection(string connectionSting)
+        {
+            ConnectionString= connectionSting;
+        }
 
         internal string GetScript(SpInfo spInfo)
         {
@@ -15,7 +22,7 @@ namespace TSQL_Inliner
                                     FROM sys.sql_modules  
                                     WHERE object_id = (OBJECT_ID(N'{spInfo.Schema}.{spInfo.Name}'));";
 
-            SqlConnection sqlConnection = new SqlConnection(sqlConnectionString);
+            SqlConnection sqlConnection = new SqlConnection(ConnectionString);
             SqlCommand sqlCommand = new SqlCommand(ReadSPScript, sqlConnection);
             sqlConnection.Open();
             using (SqlDataReader reader = sqlCommand.ExecuteReader())
@@ -36,7 +43,7 @@ namespace TSQL_Inliner
 
             List<string> Script = new List<string>();
 
-            SqlConnection sqlConnection = new SqlConnection(sqlConnectionString);
+            SqlConnection sqlConnection = new SqlConnection(ConnectionString);
             SqlCommand sqlCommand = new SqlCommand(ReadSPScript, sqlConnection);
             sqlConnection.Open();
             using (SqlDataReader reader = sqlCommand.ExecuteReader())
@@ -53,7 +60,7 @@ namespace TSQL_Inliner
 
         public void WriteScript(string script)
         {
-            SqlConnection sqlConnection = new SqlConnection(sqlConnectionString);
+            SqlConnection sqlConnection = new SqlConnection(ConnectionString);
             SqlCommand sqlCommand = new SqlCommand(script, sqlConnection);
             sqlConnection.Open();
             SqlDataReader reader = sqlCommand.ExecuteReader();

@@ -33,7 +33,6 @@ namespace TSQL_Inliner.Inliner
                 .ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
             var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
 
-            TSQLConnection tSQLConnection = new TSQLConnection();
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
                 StatementList = new StatementList()
