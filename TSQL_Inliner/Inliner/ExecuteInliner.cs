@@ -41,7 +41,7 @@ namespace TSQL_Inliner.Inliner
             ProcModel procModel = ProcOptimizer.GetProcModel(spInfo);
             if (procModel.TSqlFragment != null)
             {
-                TSqlFragment tSqlFragment = procModel.TSqlFragment;                
+                TSqlFragment tSqlFragment = procModel.TSqlFragment;
 
                 switch (procModel.CommentModel.InlineMode.ToLower())
                 {
@@ -66,11 +66,12 @@ namespace TSQL_Inliner.Inliner
                             beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                         }
 
-                        ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{procModel.SpInfo.Schema}_{procModel.SpInfo.Name}", VariableCounter);
+                        ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{spInfo.Schema}_{spInfo.Name}", VariableCounter);
+
+                        ReturnStatement(beginEndBlockStatement);
 
                         beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
 
-                        ReturnStatement(beginEndBlockStatement);
                         break;
 
                     case "remove":
@@ -106,34 +107,31 @@ namespace TSQL_Inliner.Inliner
                 }
             }
 
-            if (ProcOptimizer.hasReturnStatement)
+            //insert goto on end
+            beginEndBlockStatement.StatementList.Statements.Add(new LabelStatement()
             {
-                //insert goto on end
-                beginEndBlockStatement.StatementList.Statements.Add(new LabelStatement()
-                {
-                    Value = $"{ProcOptimizer.GoToName}:"
-                });
+                Value = $"{ProcOptimizer.GoToName}:"
+            });
 
-                //set output parameters
-                if (OutputParameters != null && OutputParameters.Any())
+            //set output parameters
+            if (OutputParameters != null && OutputParameters.Any())
+            {
+                foreach (var parameter in OutputParameters.Where(a => a.Value.Value != null))
                 {
-                    foreach (var parameter in OutputParameters.Where(a => a.Value.Value != null))
+                    beginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
                     {
-                        beginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
+                        AssignmentKind = AssignmentKind.Equals,
+                        Variable = new VariableReference()
                         {
-                            AssignmentKind = AssignmentKind.Equals,
-                            Variable = new VariableReference()
-                            {
-                                Name = (parameter.Value.Value is VariableReference ?
-                                ((VariableReference)parameter.Value.Value).Name :
-                                ((IntegerLiteral)parameter.Value.Value).Value)
-                            },
-                            Expression = new IntegerLiteral()
-                            {
-                                Value = parameter.Key.VariableName.Value
-                            }
-                        });
-                    }
+                            Name = (parameter.Value.Value is VariableReference ?
+                            ((VariableReference)parameter.Value.Value).Name :
+                            ((IntegerLiteral)parameter.Value.Value).Value)
+                        },
+                        Expression = new IntegerLiteral()
+                        {
+                            Value = parameter.Key.VariableName.Value
+                        }
+                    });
                 }
             }
         }

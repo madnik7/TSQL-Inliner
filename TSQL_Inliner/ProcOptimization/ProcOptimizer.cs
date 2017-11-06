@@ -12,7 +12,7 @@ namespace TSQL_Inliner.ProcOptimization
     {
         public TSQLConnection TSQLConnection { get; private set; }
         public int VariableCounter { get; private set; }
-        public bool hasReturnStatement { get; set; }
+        //public bool hasReturnStatement { get; set; }
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
 
@@ -21,7 +21,7 @@ namespace TSQL_Inliner.ProcOptimization
             VariableCounter = 0;
             TSQLConnection = tSQLConnection;
             GoToName = string.Empty;
-            hasReturnStatement = false;
+            //hasReturnStatement = false;
             ProcessedProcdures = new List<string>();
         }
 
@@ -119,7 +119,7 @@ namespace TSQL_Inliner.ProcOptimization
 
                     foreach (var comment in fragment.ScriptTokenStream.Where(a => (a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment) &&
                     a.Line < (firstCreateOrAlterLine == null ? 1 : firstCreateOrAlterLine.Line)))
-                    {
+                    { 
                         if (comment.Text.ToLower().Contains("#inliner"))
                         {
                             try

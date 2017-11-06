@@ -20,6 +20,18 @@ namespace TSQL_Inliner.Inliner
             base.Visit(node);
         }
 
+        public override void Visit(LabelStatement node)
+        {
+            node.Value = Program.ProcOptimizer.BuildNewName(node.Value.Remove(node.Value.Length - 1, 1), VariableCounter) + ":";
+            base.Visit(node);
+        }
+
+        public override void Visit(GoToStatement node)
+        {
+            node.LabelName.Value = Program.ProcOptimizer.BuildNewName(node.LabelName.Value, VariableCounter);
+            base.Visit(node);
+        }
+
         //Rename "DeclareVariableElement"s
         public override void Visit(DeclareVariableElement node)
         {
@@ -40,7 +52,7 @@ namespace TSQL_Inliner.Inliner
             //for this purpos, create variables and set "GOTO" lable for jump to that lable
             foreach (var returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
-                Program.ProcOptimizer.hasReturnStatement = true;
+                //Program.ProcOptimizer.hasReturnStatement = true;
                 BeginEndBlockStatement returnBeginEndBlockStatement = new BeginEndBlockStatement()
                 {
                     StatementList = new StatementList()

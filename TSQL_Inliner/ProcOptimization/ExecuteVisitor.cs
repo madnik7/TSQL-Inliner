@@ -87,7 +87,7 @@ namespace TSQL_Inliner.ProcOptimization
             }
 
             ExecuteInliner executeInliner = new ExecuteInliner();
-            newBody = executeInliner.GetExecuteStatementAsInline(spInfo, executableProcedureReference);
+            newBody = executeInliner.GetExecuteStatementAsInline(spInfo, executableProcedureReference);            
             return newBody;
         }
 
