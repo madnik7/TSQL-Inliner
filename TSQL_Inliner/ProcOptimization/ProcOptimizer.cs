@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using TSQL_Inliner.Model;
 
 namespace TSQL_Inliner.ProcOptimization
@@ -73,7 +74,9 @@ namespace TSQL_Inliner.ProcOptimization
             sql140ScriptGenerator.GenerateScript(procModel.TSqlFragment, out string script);
 
             procModel.CommentModel.IsOptimized = true;
-            script = $"{procModel.TopComments}-- #Inliner {JsonConvert.SerializeObject(procModel.CommentModel)}{Environment.NewLine}{script.Replace(" THROW ", " ;THROW ")}";
+            Regex regex = new Regex(@"\bEND\b"); 
+            script = $"{procModel.TopComments}-- #Inliner {JsonConvert.SerializeObject(procModel.CommentModel)}{Environment.NewLine}" +
+                $"{regex.Replace(script, "END;").Replace("END; TRY", "END TRY").Replace("END; CATCH", "END CATCH")}";
 
             return script;
         }
@@ -119,7 +122,7 @@ namespace TSQL_Inliner.ProcOptimization
 
                     foreach (var comment in fragment.ScriptTokenStream.Where(a => (a.TokenType == TSqlTokenType.SingleLineComment || a.TokenType == TSqlTokenType.MultilineComment) &&
                     a.Line < (firstCreateOrAlterLine == null ? 1 : firstCreateOrAlterLine.Line)))
-                    { 
+                    {
                         if (comment.Text.ToLower().Contains("#inliner"))
                         {
                             try

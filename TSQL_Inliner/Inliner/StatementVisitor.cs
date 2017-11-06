@@ -39,15 +39,6 @@ namespace TSQL_Inliner.Inliner
             base.Visit(node);
         }
 
-        public override void Visit(ReturnStatement node)
-        {
-            node.Expression = node.Expression ?? new IntegerLiteral()
-            {
-                Value = "0"                 
-            };
-            base.Visit(node);
-        }
-
         //Rename "VariableReference"s of "ExecuteParameter"
         public override void ExplicitVisit(ExecuteParameter node)
         {
@@ -100,7 +91,7 @@ namespace TSQL_Inliner.Inliner
                         {
                             Value = ((ReturnStatement)returnStatement).Expression is VariableReference ?
                             ((VariableReference)((ReturnStatement)returnStatement).Expression).Name :
-                            ((IntegerLiteral)((ReturnStatement)returnStatement).Expression).Value
+                            (((ReturnStatement)returnStatement).Expression != null ? ((IntegerLiteral)((ReturnStatement)returnStatement).Expression).Value : "0")
                         }
                     });
                 }

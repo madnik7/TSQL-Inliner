@@ -156,10 +156,9 @@ namespace TSQL_Inliner.Inliner
                 {
                     declareVariableElement.Value = unnamedValues[unnamedValuesCounter++];
                 }
-                else
+                else if (namedValues.Any(a => a.Key == declareVariableElement.VariableName.Value))
                 {
-                    declareVariableElement.Value = namedValues.Any(a => a.Key == declareVariableElement.VariableName.Value) ?
-                    namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value : declareVariableElement.Value;
+                    declareVariableElement.Value = namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value;
                 }
 
                 declareVariableElement.VariableName.Value = ProcOptimizer.BuildNewName(parameter.VariableName.Value, VariableCounter);

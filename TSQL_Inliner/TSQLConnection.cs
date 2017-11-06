@@ -7,7 +7,7 @@ namespace TSQL_Inliner
 {
     public class TSQLConnection
     {
-        protected string sqlConnectionString = @"Integrated Security=SSPI;Initial Catalog=IcLoyalty;Data Source=localhost;";
+        protected string sqlConnectionString = @"Integrated Security=SSPI;Initial Catalog=IcUserService;Data Source=localhost;";
 
         internal string GetScript(SpInfo spInfo)
         {
