@@ -64,7 +64,7 @@ namespace TSQL_Inliner.Inliner
                         beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                     }
 
-                    ProcOptimizer.GoToName = $"EndOf_{procModel.SpInfo.Schema}_{procModel.SpInfo.Name}";
+                    ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{procModel.SpInfo.Schema}_{procModel.SpInfo.Name}", VariableCounter);
 
                     beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
 
