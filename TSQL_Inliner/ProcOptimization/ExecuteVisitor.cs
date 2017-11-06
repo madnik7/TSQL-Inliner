@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TSQL_Inliner.Model;
 using TSQL_Inliner.Inliner;
+using Newtonsoft.Json;
 
 namespace TSQL_Inliner.ProcOptimization
 {
@@ -45,11 +46,15 @@ namespace TSQL_Inliner.ProcOptimization
             foreach (var executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
                 var executableProcedureReference = (ExecutableProcedureReference)(((ExecuteStatement)executeStatement).ExecuteSpecification.ExecutableEntity);
-                var newBody = ExecuteStatement(executableProcedureReference);
-                if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                if (executableProcedureReference.ProcedureReference.ProcedureReference.Name.DatabaseIdentifier == null)
                 {
-                    node.Statements[node.Statements.IndexOf(executeStatement)] = newBody;
-                    newStatements.Add(newBody);
+                    var ddddds = JsonConvert.SerializeObject(executableProcedureReference);
+                    var newBody = ExecuteStatement(executableProcedureReference);
+                    if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                    {
+                        node.Statements[node.Statements.IndexOf(executeStatement)] = newBody;
+                        newStatements.Add(newBody);
+                    }
                 }
             }
 

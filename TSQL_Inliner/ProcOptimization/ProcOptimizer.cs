@@ -38,7 +38,7 @@ namespace TSQL_Inliner.ProcOptimization
         public string BuildNewName(string name, int counter)
         {
             if (name.ToLower().Contains("_inliner"))
-                return $"{name}_{ counter}";
+                return $"{name}_{counter}";
             return $"{name}_inliner{counter}";
         }
 
