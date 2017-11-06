@@ -68,10 +68,9 @@ namespace TSQL_Inliner.Inliner
 
                         ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{spInfo.Schema}_{spInfo.Name}", VariableCounter);
 
-                        ReturnStatement(beginEndBlockStatement);
-
                         beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
 
+                        ReturnStatement(beginEndBlockStatement);
                         break;
 
                     case "remove":
@@ -112,6 +111,8 @@ namespace TSQL_Inliner.Inliner
             {
                 Value = $"{ProcOptimizer.GoToName}:"
             });
+
+            beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is LabelStatement).Accept(StatementVisitor);
 
             //set output parameters
             if (OutputParameters != null && OutputParameters.Any())
