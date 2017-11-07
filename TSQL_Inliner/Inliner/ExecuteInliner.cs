@@ -172,7 +172,8 @@ namespace TSQL_Inliner.Inliner
                 }
             }
 
-            beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
+            if (declareVariableStatement.Declarations != null && declareVariableStatement.Declarations.Any())
+                beginEndBlockStatement.StatementList.Statements.Add(declareVariableStatement);
         }
     }
 }
