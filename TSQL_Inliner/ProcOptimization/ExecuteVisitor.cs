@@ -32,6 +32,27 @@ namespace TSQL_Inliner.ProcOptimization
 
                 node.Batches.FirstOrDefault().Statements[node.Batches.FirstOrDefault().Statements.IndexOf(createProcedureStatement)] = alterProcedureStatement;
             }
+
+            if (node.Batches.Any() && node.Batches.FirstOrDefault().Statements.Any(b => b is CreateFunctionStatement))
+            {
+                CreateFunctionStatement createFunctionStatement = (CreateFunctionStatement)node.Batches.FirstOrDefault().Statements.FirstOrDefault(b => b is CreateFunctionStatement);
+
+                AlterFunctionStatement alterFunctionStatement = new AlterFunctionStatement()
+                {
+                    MethodSpecifier = createFunctionStatement.MethodSpecifier,
+                    StatementList = createFunctionStatement.StatementList,
+                    ScriptTokenStream = createFunctionStatement.ScriptTokenStream,
+                    Name = createFunctionStatement.Name,
+                    OrderHint = createFunctionStatement.OrderHint,
+                    ReturnType = createFunctionStatement.ReturnType
+                };
+                foreach (var i in createFunctionStatement.Options)
+                    alterFunctionStatement.Options.Add(i);
+                foreach (var i in createFunctionStatement.Parameters)
+                    alterFunctionStatement.Parameters.Add(i);
+
+                node.Batches.FirstOrDefault().Statements[node.Batches.FirstOrDefault().Statements.IndexOf(createFunctionStatement)] = alterFunctionStatement;
+            }
             base.Visit(node);
         }
 
@@ -86,7 +107,7 @@ namespace TSQL_Inliner.ProcOptimization
             }
 
             ExecuteInliner executeInliner = new ExecuteInliner();
-            newBody = executeInliner.GetExecuteStatementAsInline(spInfo, executableProcedureReference);            
+            newBody = executeInliner.GetExecuteStatementAsInline(spInfo, executableProcedureReference);
             return newBody;
         }
 

@@ -29,6 +29,8 @@ namespace TSQL_Inliner.Inliner
         /// <returns></returns>
         public BeginEndBlockStatement GetExecuteStatementAsInline(SpInfo spInfo, ExecutableProcedureReference executableProcedureReference)
         {
+            if (spInfo.Schema == "dbo" && spInfo.Name == "User_Create")
+            { }
             var namedValues = executableProcedureReference.Parameters.Where(a => a.Variable != null && !string.IsNullOrEmpty(a.Variable.Name))
                 .ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
             var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
@@ -45,24 +47,25 @@ namespace TSQL_Inliner.Inliner
                 switch (procModel.CommentModel.InlineMode.ToLower())
                 {
                     case "inline":
-                        var batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is AlterProcedureStatement));
+
+                        TSqlBatch batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
                         if (batche != null)
                         {
-                            AlterProcedureStatement alterProcedureStatement = (AlterProcedureStatement)batche.Statements.FirstOrDefault(a => a is AlterProcedureStatement);
-
-                            Parameters(beginEndBlockStatement, alterProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
-
-                            beginEndBlockStatement.StatementList.Statements.Add(alterProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
-                        }
-                        else
-                        {
-                            batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
-
                             CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
 
                             Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
 
                             beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
+                        }
+                        else
+                        {
+                            batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateFunctionStatement));
+
+                            CreateFunctionStatement createFunctionStatement = (CreateFunctionStatement)batche.Statements.FirstOrDefault(a => a is CreateFunctionStatement);
+
+                            Parameters(beginEndBlockStatement, createFunctionStatement.Parameters.ToList(), namedValues, unnamedValues);
+
+                            beginEndBlockStatement.StatementList.Statements.Add(createFunctionStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                         }
 
                         ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{spInfo.Schema}_{spInfo.Name}", VariableCounter);
