@@ -13,7 +13,7 @@ namespace TSQL_Inliner
 
         public TSQLConnection(string connectionSting)
         {
-            ConnectionString= connectionSting;
+            ConnectionString = connectionSting;
         }
 
         internal string GetScript(SpInfo spInfo)
@@ -32,6 +32,31 @@ namespace TSQL_Inliner
             }
             sqlConnection.Close();
             return null;
+        }
+
+        public int GetVariableCounter()
+        {
+            string ReadSPScript = $@"SELECT value FROM sys.extended_properties WHERE name='VariableCounter'";
+
+            SqlConnection sqlConnection = new SqlConnection(ConnectionString);
+            SqlCommand sqlCommand = new SqlCommand(ReadSPScript, sqlConnection);
+            sqlConnection.Open();
+            using (SqlDataReader reader = sqlCommand.ExecuteReader())
+            {
+                if (reader.Read())
+                    return int.Parse(reader["value"].ToString());
+            }
+            sqlConnection.Close();
+
+            WriteScript(@"EXEC sp_addextendedproperty  
+                            @name = N'VariableCounter', @value = '0';");
+            return 0;
+        }
+
+        public void SetVariableCounter(int variableCounter)
+        {
+            WriteScript($@"EXEC sp_updateextendedproperty  
+                            @name = N'VariableCounter', @value = '{variableCounter}';");
         }
 
         public List<string> GetAllStoredProcedures(string schema)

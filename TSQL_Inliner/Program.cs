@@ -65,13 +65,16 @@ namespace TSQL_Inliner
             Console.WriteLine("Getting dbo proccedures list");
 
             var allSPs = tSQLConnection.GetAllStoredProcedures(appArgs.Schema)
-                .Where(a => appArgs.ProcName==null || a.ToLower() == appArgs.ProcName)// just for testing operations
+                .Where(a => appArgs.ProcName == null || a.ToLower() == appArgs.ProcName)// just for testing operations
                 .Select(a => new SpInfo() { Schema = appArgs.Schema, Name = a });
 
             foreach (var spInfo in allSPs)
             {
                 ProcOptimizer.Process(spInfo);
             }
+
+            tSQLConnection.SetVariableCounter(ProcOptimizer.VariableCounter);
+
             Console.WriteLine($"{Environment.NewLine}=-=-=-=-=-=-=-=-=-=-={Environment.NewLine}Press any key to exit ...");
             Console.ReadKey();
         }
