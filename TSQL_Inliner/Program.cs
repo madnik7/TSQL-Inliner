@@ -77,6 +77,8 @@ namespace TSQL_Inliner
             {
                 ProcOptimizer.Process(spInfo);
             }
+
+            tSQLConnection.VariableCounter = ProcOptimizer.VariableCounter;
             Console.WriteLine($"{Environment.NewLine}=-=-=-=-=-=-=-=-=-=-={Environment.NewLine}Press any key to exit ...");
             Console.ReadKey();
         }

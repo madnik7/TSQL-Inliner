@@ -19,7 +19,7 @@ namespace TSQL_Inliner.ProcOptimization
         public ProcOptimizer(TSQLConnection tSQLConnection)
         {
             TSQLConnection = tSQLConnection;
-            VariableCounter = TSQLConnection.GetVariableCounter();           
+            VariableCounter = TSQLConnection.VariableCounter;           
             GoToName = string.Empty;
             ProcessedProcdures = new List<string>();
         }
