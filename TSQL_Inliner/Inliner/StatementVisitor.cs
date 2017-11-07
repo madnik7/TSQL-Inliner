@@ -20,6 +20,7 @@ namespace TSQL_Inliner.Inliner
             base.Visit(node);
         }
 
+
         public override void Visit(LabelStatement node)
         {
             node.Value = Program.ProcOptimizer.BuildNewName(node.Value.Remove(node.Value.Length - 1, 1), VariableCounter) + ":";
@@ -36,6 +37,12 @@ namespace TSQL_Inliner.Inliner
         public override void Visit(DeclareVariableElement node)
         {
             node.VariableName.Value = Program.ProcOptimizer.BuildNewName(node.VariableName.Value, VariableCounter);
+            base.Visit(node);
+        }
+
+        public override void Visit(DeclareTableVariableStatement node)
+        {
+            node.Body.VariableName.Value = Program.ProcOptimizer.BuildNewName(node.Body.VariableName.Value, VariableCounter);
             base.Visit(node);
         }
 
