@@ -1,10 +1,12 @@
 ﻿using System.Linq;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
+using TSQL_Inliner.ProcOptimization;
 
 namespace TSQL_Inliner.Inliner
 {
     public class StatementVisitor : TSqlConcreteFragmentVisitor
     {
+        ProcOptimizer ProcOptimizer { get { return Program.ProcOptimizer; } }
         public BeginEndBlockStatement _returnStatementPlace { get; set; }
         int VariableCounter;
 
@@ -75,7 +77,7 @@ namespace TSQL_Inliner.Inliner
                     {
                         DataType = new SqlDataTypeReference()
                         {
-                            SqlDataTypeOption = SqlDataTypeOption.Int
+                            SqlDataTypeOption = ProcOptimizer.GetSqlDataTypeOption(returnStatement)
                         },
                         VariableName = new Identifier() { Value = Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter) }
                     });
@@ -92,14 +94,9 @@ namespace TSQL_Inliner.Inliner
                         AssignmentKind = AssignmentKind.Equals,
                         Variable = new VariableReference()
                         {
-                            Name = $"@ReturnValue",
+                            Name = $"@ReturnValue"
                         },
-                        Expression = new IntegerLiteral()
-                        {
-                            Value = (returnStatement).Expression is VariableReference ?
-                            Program.ProcOptimizer.BuildNewName(((VariableReference)(returnStatement).Expression).Name, VariableCounter) :
-                            (((returnStatement).Expression != null && (returnStatement).Expression is IntegerLiteral) ? ((IntegerLiteral)(returnStatement).Expression).Value : "0")
-                        }
+                        Expression = ProcOptimizer.GetScalarExpression(returnStatement)
                     });
                 }
 

@@ -25,6 +25,8 @@ namespace TSQL_Inliner.ProcOptimization
                     StatementList = createProcedureStatement.StatementList,
                     ScriptTokenStream = createProcedureStatement.ScriptTokenStream
                 };
+                ProcOptimizer.FunctionReturnType = null;
+
                 foreach (var i in createProcedureStatement.Options)
                     alterProcedureStatement.Options.Add(i);
                 foreach (var i in createProcedureStatement.Parameters)
@@ -44,8 +46,10 @@ namespace TSQL_Inliner.ProcOptimization
                     ScriptTokenStream = createFunctionStatement.ScriptTokenStream,
                     Name = createFunctionStatement.Name,
                     OrderHint = createFunctionStatement.OrderHint,
-                    ReturnType = createFunctionStatement.ReturnType
+                    ReturnType = createFunctionStatement.ReturnType 
                 };
+                ProcOptimizer.FunctionReturnType = createFunctionStatement.ReturnType;
+
                 foreach (var i in createFunctionStatement.Options)
                     alterFunctionStatement.Options.Add(i);
                 foreach (var i in createFunctionStatement.Parameters)
