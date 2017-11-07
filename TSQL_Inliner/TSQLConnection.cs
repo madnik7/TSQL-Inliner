@@ -34,13 +34,39 @@ namespace TSQL_Inliner
             return null;
         }
 
-        public SpInfo[] GetAllStoredProcedures(string schema)
+        public int GetVariableCounter()
         {
-            List<SpInfo> spInfos = new List<SpInfo>();
-            string ReadSPScript = $@"SELECT	P.name as SPName, S.name as SPSchema
+            string ReadSPScript = $@"SELECT value FROM sys.extended_properties WHERE name='VariableCounter'";
+
+            SqlConnection sqlConnection = new SqlConnection(ConnectionString);
+            SqlCommand sqlCommand = new SqlCommand(ReadSPScript, sqlConnection);
+            sqlConnection.Open();
+            using (SqlDataReader reader = sqlCommand.ExecuteReader())
+            {
+                if (reader.Read())
+                    return int.Parse(reader["value"].ToString());
+            }
+            sqlConnection.Close();
+
+            WriteScript(@"EXEC sp_addextendedproperty  
+                            @name = N'VariableCounter', @value = '0';");
+            return 0;
+        }
+
+        public void SetVariableCounter(int variableCounter)
+        {
+            WriteScript($@"EXEC sp_updateextendedproperty  
+                            @name = N'VariableCounter', @value = '{variableCounter}';");
+        }
+
+        public List<string> GetAllStoredProcedures(string schema)
+        {
+            string ReadSPScript = $@"SELECT	P.name as SPName
                                     FROM sys.procedures AS P
 	                                INNER JOIN sys.schemas AS S ON S.schema_id = P.schema_id
                                     WHERE	S.name = '{schema}';";
+
+            List<string> Script = new List<string>();
 
             SqlConnection sqlConnection = new SqlConnection(ConnectionString);
             SqlCommand sqlCommand = new SqlCommand(ReadSPScript, sqlConnection);
@@ -49,16 +75,12 @@ namespace TSQL_Inliner
             {
                 while (reader.Read())
                 {
-                    spInfos.Add(new SpInfo()
-                    {
-                        Name = Convert.ToString(reader["SPName"]),
-                        Schema = Convert.ToString(reader["SPSchema"])
-                    });
+                    Script.Add(Convert.ToString(reader["SPName"]));
                 }
             }
             sqlConnection.Close();
 
-            return spInfos.ToArray();
+            return Script;
         }
 
         public void WriteScript(string script)

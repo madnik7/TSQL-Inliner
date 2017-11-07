@@ -13,16 +13,14 @@ namespace TSQL_Inliner.ProcOptimization
     {
         public TSQLConnection TSQLConnection { get; private set; }
         public int VariableCounter { get; private set; }
-        //public bool hasReturnStatement { get; set; }
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
 
         public ProcOptimizer(TSQLConnection tSQLConnection)
         {
-            VariableCounter = 0;
             TSQLConnection = tSQLConnection;
+            VariableCounter = TSQLConnection.GetVariableCounter();           
             GoToName = string.Empty;
-            //hasReturnStatement = false;
             ProcessedProcdures = new List<string>();
         }
 
@@ -58,7 +56,7 @@ namespace TSQL_Inliner.ProcOptimization
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error! {ex.Message}");
+                Console.Write($"Error! {ex.Message}");
                 Console.ResetColor();
             }
         }
@@ -86,7 +84,7 @@ namespace TSQL_Inliner.ProcOptimization
             ProcModel procModel = GetProcModel(spInfo);
             if (procModel.TSqlFragment == null)
             {
-                Console.WriteLine("Not Found.");
+                Console.Write(" Not Found.");
                 return null;
             }
 
@@ -100,7 +98,7 @@ namespace TSQL_Inliner.ProcOptimization
                 return procModel;
             }
 
-            Console.WriteLine(procModel.CommentModel.IsOptimized ? ", Already optimized." : ", Not Optimizable.");
+            Console.Write(procModel.CommentModel.IsOptimized ? ", Already optimized." : ", Not Optimizable.");
             return null;
         }
 
