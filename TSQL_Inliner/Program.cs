@@ -3,6 +3,7 @@ using System.Linq;
 using TSQL_Inliner.Model;
 using TSQL_Inliner.Inliner;
 using TSQL_Inliner.ProcOptimization;
+using System.Collections.Generic;
 
 namespace TSQL_Inliner
 {
@@ -15,7 +16,7 @@ namespace TSQL_Inliner
             Console.WriteLine("inline TSQL procedures and functions.");
             Console.WriteLine("");
             Console.WriteLine("");
-            Console.WriteLine("tsql_inliner /connectionString connectionString /schema schema [/procName procName]");
+            Console.WriteLine("tsql_inliner /connectionString connectionString /schema schema /schema schema [/procName procName]");
             Console.WriteLine("");
             Console.WriteLine("  connectionString\t SQL Server connection string.");
             Console.WriteLine("  schema\t\t the schema of the database. Default is dbo.");
@@ -24,10 +25,8 @@ namespace TSQL_Inliner
 
         static AppArgument ProcessArgument(string[] args)
         {
-            var appArgument = new AppArgument
-            {
-                Schema = "dbo"
-            };
+            var appArgument = new AppArgument();
+            var schemas = new List<string>();
 
             //process argument
             var lastKey = "";
@@ -38,13 +37,14 @@ namespace TSQL_Inliner
                 switch (lastKey)
                 {
                     case "/connectionstring": appArgument.ConnectionString = item; break;
-                    case "/schema": appArgument.Schema = item; break;
+                    case "/schema": if (schemas.IndexOf(item) == -1) schemas.Add(item); break;
                     case "/procname": appArgument.ProcName = item; break;
                 }
                 lastKey = key;
             }
 
-            if (appArgument.ConnectionString == null || appArgument.Schema == null)
+            appArgument.Schemas = schemas.ToArray();
+            if (appArgument.ConnectionString == null || appArgument.Schemas.Length==0)
                 return null;
 
             return appArgument;
@@ -64,9 +64,14 @@ namespace TSQL_Inliner
 
             Console.WriteLine("Getting dbo proccedures list");
 
-            var allSPs = tSQLConnection.GetAllStoredProcedures(appArgs.Schema)
-                .Where(a => appArgs.ProcName==null || a.ToLower() == appArgs.ProcName)// just for testing operations
-                .Select(a => new SpInfo() { Schema = appArgs.Schema, Name = a });
+            // get all procedures
+            var allSPs = new List<SpInfo>();
+            foreach (var schema in appArgs.Schemas)
+                allSPs.AddRange(tSQLConnection.GetAllStoredProcedures(schema));
+
+            //filter ProcName
+            if (appArgs.ProcName != null)
+                allSPs = allSPs.Where(x=>  x.Name==appArgs.ProcName).ToList();
 
             foreach (var spInfo in allSPs)
             {

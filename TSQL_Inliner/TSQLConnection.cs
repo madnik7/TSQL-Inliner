@@ -13,7 +13,7 @@ namespace TSQL_Inliner
 
         public TSQLConnection(string connectionSting)
         {
-            ConnectionString= connectionSting;
+            ConnectionString = connectionSting;
         }
 
         internal string GetScript(SpInfo spInfo)
@@ -34,14 +34,13 @@ namespace TSQL_Inliner
             return null;
         }
 
-        public List<string> GetAllStoredProcedures(string schema)
+        public SpInfo[] GetAllStoredProcedures(string schema)
         {
-            string ReadSPScript = $@"SELECT	P.name as SPName
+            List<SpInfo> spInfos = new List<SpInfo>();
+            string ReadSPScript = $@"SELECT	P.name as SPName, S.name as SPSchema
                                     FROM sys.procedures AS P
 	                                INNER JOIN sys.schemas AS S ON S.schema_id = P.schema_id
                                     WHERE	S.name = '{schema}';";
-
-            List<string> Script = new List<string>();
 
             SqlConnection sqlConnection = new SqlConnection(ConnectionString);
             SqlCommand sqlCommand = new SqlCommand(ReadSPScript, sqlConnection);
@@ -50,12 +49,16 @@ namespace TSQL_Inliner
             {
                 while (reader.Read())
                 {
-                    Script.Add(Convert.ToString(reader["SPName"]));
+                    spInfos.Add(new SpInfo()
+                    {
+                        Name = Convert.ToString(reader["SPName"]),
+                        Schema = Convert.ToString(reader["SPSchema"])
+                    });
                 }
             }
             sqlConnection.Close();
 
-            return Script;
+            return spInfos.ToArray();
         }
 
         public void WriteScript(string script)
