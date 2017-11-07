@@ -53,6 +53,8 @@ namespace TSQL_Inliner.Inliner
                         {
                             CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
 
+                            ProcOptimizer.FunctionReturnType = null;
+
                             Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
 
                             beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
@@ -62,6 +64,8 @@ namespace TSQL_Inliner.Inliner
                             batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateFunctionStatement));
 
                             CreateFunctionStatement createFunctionStatement = (CreateFunctionStatement)batche.Statements.FirstOrDefault(a => a is CreateFunctionStatement);
+
+                            ProcOptimizer.FunctionReturnType = createFunctionStatement.ReturnType;
 
                             Parameters(beginEndBlockStatement, createFunctionStatement.Parameters.ToList(), namedValues, unnamedValues);
 
