@@ -13,6 +13,7 @@ namespace TSQL_Inliner.ProcOptimization
     {
         public TSQLConnection TSQLConnection { get; private set; }
         public int VariableCounter { get; private set; }
+        public FunctionReturnType FunctionReturnType { get; set; }
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
 
@@ -142,6 +143,93 @@ namespace TSQL_Inliner.ProcOptimization
                 }
             }
             return procModel;
+        }
+
+        public ScalarExpression GetScalarExpression(ReturnStatement returnStatement)
+        {
+            if ((returnStatement).Expression is VariableReference)
+                return new VariableReference()
+                {
+                    Name = ((VariableReference)(returnStatement).Expression).Name
+                };
+
+            if ((returnStatement).Expression is IntegerLiteral)
+                return new IntegerLiteral()
+                {
+                    Value = ((IntegerLiteral)(returnStatement).Expression).Value
+                };
+
+            if ((returnStatement).Expression is BinaryLiteral)
+                return new IntegerLiteral()
+                {
+                    Value = ((BinaryLiteral)(returnStatement).Expression).Value
+                };
+
+            return new StringLiteral()
+            {
+                Value = ((StringLiteral)(returnStatement).Expression).Value
+            };
+        }
+
+        public SqlDataTypeOption GetSqlDataTypeOption(ReturnStatement returnStatement)
+        {
+            if (FunctionReturnType == null)
+                return SqlDataTypeOption.Int;
+            else
+                switch (((ScalarFunctionReturnType)FunctionReturnType).DataType.Name.BaseIdentifier.Value.ToLower())
+                {
+                    case "int":
+                        return SqlDataTypeOption.Int;
+                    case "bigint":
+                        return SqlDataTypeOption.BigInt;
+                    case "float":
+                        return SqlDataTypeOption.Float;
+                    case "binary":
+                        return SqlDataTypeOption.Binary;
+                    case "datetime":
+                        return SqlDataTypeOption.DateTime;
+                    case "datetime2":
+                        return SqlDataTypeOption.DateTime2;
+                    case "date":
+                        return SqlDataTypeOption.Date;
+                    case "bit":
+                        return SqlDataTypeOption.Bit;
+                    case "char":
+                        return SqlDataTypeOption.Char;
+                    case "nvarchar":
+                        return SqlDataTypeOption.NVarChar;
+                    case "decimal":
+                        return SqlDataTypeOption.Decimal;
+                    case "image":
+                        return SqlDataTypeOption.Image;
+                    case "money":
+                        return SqlDataTypeOption.Money;
+                    case "nchar":
+                        return SqlDataTypeOption.NChar;
+                    case "ntext":
+                        return SqlDataTypeOption.NText;
+                    case "numeric":
+                        return SqlDataTypeOption.Numeric;
+                    case "real":
+                        return SqlDataTypeOption.Real;
+                    case "smalldatetime":
+                        return SqlDataTypeOption.SmallDateTime;
+                    case "smallint":
+                        return SqlDataTypeOption.SmallInt;
+                    case "smallmoney":
+                        return SqlDataTypeOption.SmallMoney;
+                    case "table":
+                        return SqlDataTypeOption.Table;
+                    case "text":
+                        return SqlDataTypeOption.Text;
+                    case "time":
+                        return SqlDataTypeOption.Time;
+                    case "varchar":
+                        return SqlDataTypeOption.VarChar;
+
+                    default:
+                        return SqlDataTypeOption.Int;
+                }
         }
     }
 }
