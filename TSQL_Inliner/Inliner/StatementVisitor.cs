@@ -91,7 +91,7 @@ namespace TSQL_Inliner.Inliner
                         {
                             Value = (returnStatement).Expression is VariableReference ?
                             ((VariableReference)(returnStatement).Expression).Name :
-                            ((returnStatement).Expression != null ? ((IntegerLiteral)(returnStatement).Expression).Value : "0")
+                            (((returnStatement).Expression != null && (returnStatement).Expression is IntegerLiteral) ? ((IntegerLiteral)(returnStatement).Expression).Value : "0")
                         }
                     });
                 }

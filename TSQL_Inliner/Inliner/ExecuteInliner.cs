@@ -116,7 +116,7 @@ namespace TSQL_Inliner.Inliner
             //set output parameters
             if (OutputParameters != null && OutputParameters.Any())
             {
-                foreach (var parameter in OutputParameters.Where(a => a.Value.Value != null))
+                foreach (var parameter in OutputParameters.Where(a => a.Value.Value != null && (a.Value.Value is VariableReference || a.Value.Value is IntegerLiteral)))
                 {
                     beginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
                     {
