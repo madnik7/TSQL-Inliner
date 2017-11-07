@@ -97,7 +97,7 @@ namespace TSQL_Inliner.Inliner
                         Expression = new IntegerLiteral()
                         {
                             Value = (returnStatement).Expression is VariableReference ?
-                            ((VariableReference)(returnStatement).Expression).Name :
+                            Program.ProcOptimizer.BuildNewName(((VariableReference)(returnStatement).Expression).Name, VariableCounter) :
                             (((returnStatement).Expression != null && (returnStatement).Expression is IntegerLiteral) ? ((IntegerLiteral)(returnStatement).Expression).Value : "0")
                         }
                     });

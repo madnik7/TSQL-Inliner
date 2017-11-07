@@ -43,11 +43,12 @@ namespace TSQL_Inliner.ProcOptimization
 
         public void Process(SpInfo spInfo)
         {
+            string newScript;
             try
             {
                 Console.Write($"\nProcessing {spInfo.Schema}.{spInfo.Name}");
 
-                var newScript = ProcessScript(spInfo);
+                newScript = ProcessScript(spInfo);
                 if (newScript != null)
                 {
                     TSQLConnection.WriteScript(newScript);
