@@ -82,7 +82,7 @@ namespace TSQL_Inliner.ProcOptimization
 
             foreach (SetVariableStatement setVariableStatement in node.Statements.Where(a => a is SetVariableStatement).ToList())
             {
-                if (setVariableStatement.Expression is FunctionCall)
+                if (setVariableStatement.Expression is FunctionCall && ((FunctionCall)setVariableStatement.Expression).CallTarget != null)
                 {
                     var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable.Name);
                     if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
@@ -96,7 +96,7 @@ namespace TSQL_Inliner.ProcOptimization
             foreach (DeclareVariableStatement declareVariableStatement in node.Statements.Where(a => a is DeclareVariableStatement).ToList())
             {
                 foreach (var declaration in declareVariableStatement.Declarations)
-                    if (declaration.Value is FunctionCall)
+                    if (declaration.Value is FunctionCall && ((FunctionCall)declaration.Value).CallTarget != null)
                     {
                         var newBody = ExecuteFunctionStatement((FunctionCall)declaration.Value, declaration.VariableName.Value);
                         if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
@@ -106,6 +106,20 @@ namespace TSQL_Inliner.ProcOptimization
                             newStatements.Add(newBody);
                         }
                     }
+            }
+
+            foreach (ReturnStatement returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
+            {
+                if (returnStatement.Expression is FunctionCall && ((FunctionCall)returnStatement.Expression).CallTarget != null)
+                {
+                    var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression);
+                    if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                    {
+                        returnStatement.Expression = null;
+                        node.Statements[node.Statements.IndexOf(returnStatement)] = newBody;
+                        newStatements.Add(newBody);
+                    }
+                }
             }
 
             base.Visit(node);
@@ -128,8 +142,6 @@ namespace TSQL_Inliner.ProcOptimization
                 Name = executableProcedureReference.ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value
             };
 
-            BeginEndBlockStatement newBody = new BeginEndBlockStatement();
-
             //optimize the procedure
             if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
             {
@@ -142,19 +154,17 @@ namespace TSQL_Inliner.ProcOptimization
             var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
 
             ExecuteInliner executeInliner = new ExecuteInliner();
-            newBody = executeInliner.GetStatementAsInline(spInfo, unnamedValues, namedValues);
+            BeginEndBlockStatement newBody = executeInliner.GetStatementAsInline(spInfo, unnamedValues, namedValues);
             return newBody;
         }
 
-        private BeginEndBlockStatement ExecuteFunctionStatement(FunctionCall functionCall, string setVariableReferenceName)
+        private BeginEndBlockStatement ExecuteFunctionStatement(FunctionCall functionCall, string setVariableReferenceName = null)
         {
             SpInfo spInfo = new SpInfo
             {
                 Schema = (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
                 Name = functionCall.FunctionName.Value
             };
-
-            BeginEndBlockStatement newBody = new BeginEndBlockStatement();
 
             //optimize the procedure
             if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
@@ -164,7 +174,8 @@ namespace TSQL_Inliner.ProcOptimization
             }
 
             ExecuteInliner executeInliner = new ExecuteInliner();
-            newBody = executeInliner.GetStatementAsInline(spInfo, functionCall.Parameters.ToList(), null, setVariableReferenceName);
+            setVariableReferenceName = setVariableReferenceName ?? executeInliner.GetReturnValueName();
+            BeginEndBlockStatement newBody = executeInliner.GetStatementAsInline(spInfo, functionCall.Parameters.ToList(), null, setVariableReferenceName);
             return newBody;
         }
 

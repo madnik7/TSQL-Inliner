@@ -48,7 +48,6 @@ namespace TSQL_Inliner.ProcOptimization
             try
             {
                 Console.Write($"\nProcessing {spInfo.Schema}.{spInfo.Name}");
-
                 newScript = ProcessScript(spInfo);
                 if (newScript != null)
                 {
@@ -71,7 +70,7 @@ namespace TSQL_Inliner.ProcOptimization
 
             //Generate new script from new fragment
             Sql140ScriptGenerator sql140ScriptGenerator = new Sql140ScriptGenerator();
-            sql140ScriptGenerator.GenerateScript(procModel.TSqlFragment, out string script);
+            sql140ScriptGenerator.GenerateScript(procModel.TSqlFragment, out string script, out IList<ParseError> parseError);
 
             procModel.CommentModel.IsOptimized = true;
             Regex regex = new Regex(@"\bEND\b");
@@ -84,6 +83,10 @@ namespace TSQL_Inliner.ProcOptimization
         public ProcModel ProcessScriptImpl(SpInfo spInfo)
         {
             ProcModel procModel = GetProcModel(spInfo);
+            if (spInfo.Name == "FormatMobileNumber")
+            {
+
+            }
             if (procModel.TSqlFragment == null)
             {
                 Console.Write(" Not Found.");
@@ -153,6 +156,12 @@ namespace TSQL_Inliner.ProcOptimization
                     Name = ((VariableReference)(returnStatement).Expression).Name
                 };
 
+            if ((returnStatement).Expression is NullLiteral)
+                return new NullLiteral()
+                {
+                     Value= ((NullLiteral)(returnStatement).Expression).Value
+                };
+
             if ((returnStatement).Expression is IntegerLiteral)
                 return new IntegerLiteral()
                 {
@@ -160,14 +169,20 @@ namespace TSQL_Inliner.ProcOptimization
                 };
 
             if ((returnStatement).Expression is BinaryLiteral)
-                return new IntegerLiteral()
+                return new BinaryLiteral()
                 {
                     Value = ((BinaryLiteral)(returnStatement).Expression).Value
                 };
 
-            return new StringLiteral()
+            if ((returnStatement).Expression is StringLiteral)
+                return new StringLiteral()
+                {
+                    Value = ((StringLiteral)(returnStatement).Expression).Value
+                };
+
+            return new StringLiteral
             {
-                Value = ((StringLiteral)(returnStatement).Expression).Value
+                Value = null
             };
         }
 

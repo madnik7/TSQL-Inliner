@@ -15,13 +15,13 @@ namespace TSQL_Inliner.Inliner
             VariableCounter = variableCounter;
             _returnStatementPlace = new BeginEndBlockStatement();
         }
+
         //Rename "VariableReference"s
         public override void Visit(VariableReference node)
         {
             node.Name = Program.ProcOptimizer.BuildNewName(node.Name, VariableCounter);
             base.Visit(node);
         }
-
 
         public override void Visit(LabelStatement node)
         {
@@ -69,7 +69,7 @@ namespace TSQL_Inliner.Inliner
 
                 //if "ReturnStatement" has Expression, we process that ...
                 //Declate variable and set value, add this variables to "returnStatementPlace" for set in top of stored procedire ...
-                if ((returnStatement).Expression != null)
+                if (returnStatement.Expression != null)
                 {
                     DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
 
@@ -89,15 +89,25 @@ namespace TSQL_Inliner.Inliner
                         };
                     _returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
 
-                    returnBeginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
+                    SetVariableStatement setVariableStatement = new SetVariableStatement()
                     {
                         AssignmentKind = AssignmentKind.Equals,
                         Variable = new VariableReference()
                         {
                             Name = $"@ReturnValue"
-                        },
-                        Expression = ProcOptimizer.GetScalarExpression(returnStatement)
-                    });
+                        }
+                    };
+
+                    if (returnStatement.Expression is ValueExpression)
+                    {
+                        setVariableStatement.Expression = ProcOptimizer.GetScalarExpression(returnStatement);
+                    }
+                    else
+                    {
+                        setVariableStatement.Expression = returnStatement.Expression;
+                    }
+
+                    returnBeginEndBlockStatement.StatementList.Statements.Add(setVariableStatement);
                 }
 
                 //set GoToStatement on the end
