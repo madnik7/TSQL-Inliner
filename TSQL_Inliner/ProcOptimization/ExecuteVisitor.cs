@@ -46,7 +46,7 @@ namespace TSQL_Inliner.ProcOptimization
                     ScriptTokenStream = createFunctionStatement.ScriptTokenStream,
                     Name = createFunctionStatement.Name,
                     OrderHint = createFunctionStatement.OrderHint,
-                    ReturnType = createFunctionStatement.ReturnType 
+                    ReturnType = createFunctionStatement.ReturnType
                 };
                 ProcOptimizer.FunctionReturnType = createFunctionStatement.ReturnType;
 
@@ -66,7 +66,6 @@ namespace TSQL_Inliner.ProcOptimization
         /// <param name="node"></param>
         public override void Visit(StatementList node)
         {
-            //StatementListCollection.Add(node);
             foreach (ExecuteStatement executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
                 var executableProcedureReference = (ExecutableProcedureReference)((executeStatement).ExecuteSpecification.ExecutableEntity);
@@ -76,6 +75,19 @@ namespace TSQL_Inliner.ProcOptimization
                     if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
                     {
                         node.Statements[node.Statements.IndexOf(executeStatement)] = newBody;
+                        newStatements.Add(newBody);
+                    }
+                }
+            }
+
+            foreach (SetVariableStatement setVariableStatement in node.Statements.Where(a => a is SetVariableStatement).ToList())
+            {
+                if (setVariableStatement.Expression is FunctionCall)
+                {
+                    var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable);
+                    if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                    {
+                        node.Statements[node.Statements.IndexOf(setVariableStatement)] = newBody;
                         newStatements.Add(newBody);
                     }
                 }
@@ -110,8 +122,34 @@ namespace TSQL_Inliner.ProcOptimization
                 ProcOptimizer.Process(spInfo);
             }
 
+            var namedValues = executableProcedureReference.Parameters.Where(a => a.Variable != null && !string.IsNullOrEmpty(a.Variable.Name))
+               .ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
+            var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
+
             ExecuteInliner executeInliner = new ExecuteInliner();
-            newBody = executeInliner.GetExecuteStatementAsInline(spInfo, executableProcedureReference);
+            newBody = executeInliner.GetStatementAsInline(spInfo, unnamedValues, namedValues);
+            return newBody;
+        }
+
+        private BeginEndBlockStatement ExecuteFunctionStatement(FunctionCall functionCall, VariableReference setVariableReference)
+        {
+            SpInfo spInfo = new SpInfo
+            {
+                Schema = (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+                Name = functionCall.FunctionName.Value
+            };
+
+            BeginEndBlockStatement newBody = new BeginEndBlockStatement();
+
+            //optimize the procedure
+            if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
+            {
+                ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
+                ProcOptimizer.Process(spInfo);
+            }
+
+            ExecuteInliner executeInliner = new ExecuteInliner();
+            newBody = executeInliner.GetStatementAsInline(spInfo, functionCall.Parameters.ToList(), null, setVariableReference);
             return newBody;
         }
 

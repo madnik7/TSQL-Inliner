@@ -13,28 +13,18 @@ namespace TSQL_Inliner.Inliner
         StatementVisitor StatementVisitor { get; set; }
         ProcOptimizer ProcOptimizer { get { return Program.ProcOptimizer; } }
         int VariableCounter;
+        bool IsFunction { get; set; }
 
-        public ExecuteInliner()
+        public ExecuteInliner(bool isFunction = false)
         {
             Program.ProcOptimizer.IncreaseVariableCounter();
             VariableCounter = Program.ProcOptimizer.VariableCounter;
             StatementVisitor = new StatementVisitor(VariableCounter);
+            IsFunction = isFunction;
         }
 
-        /// <summary>
-        /// load inline stored procedure and handle that
-        /// </summary>
-        /// <param name="SPIdentifier">stored procedure identifier</param>
-        /// <param name="Param">Variable Reference</param>
-        /// <returns></returns>
-        public BeginEndBlockStatement GetExecuteStatementAsInline(SpInfo spInfo, ExecutableProcedureReference executableProcedureReference)
+        public BeginEndBlockStatement GetStatementAsInline(SpInfo spInfo, List<ScalarExpression> unnamedValues, Dictionary<string, ScalarExpression> namedValues = null, VariableReference setVariableReference = null)
         {
-            if (spInfo.Schema == "dbo" && spInfo.Name == "User_Create")
-            { }
-            var namedValues = executableProcedureReference.Parameters.Where(a => a.Variable != null && !string.IsNullOrEmpty(a.Variable.Name))
-                .ToDictionary(a => a.Variable.Name, a => a.ParameterValue);
-            var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
-
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
                 StatementList = new StatementList()
@@ -55,7 +45,7 @@ namespace TSQL_Inliner.Inliner
 
                             ProcOptimizer.FunctionReturnType = null;
 
-                            Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), namedValues, unnamedValues);
+                            Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), unnamedValues, namedValues);
 
                             beginEndBlockStatement.StatementList.Statements.Add(createProcedureStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                         }
@@ -67,7 +57,7 @@ namespace TSQL_Inliner.Inliner
 
                             ProcOptimizer.FunctionReturnType = createFunctionStatement.ReturnType;
 
-                            Parameters(beginEndBlockStatement, createFunctionStatement.Parameters.ToList(), namedValues, unnamedValues);
+                            Parameters(beginEndBlockStatement, createFunctionStatement.Parameters.ToList(), unnamedValues, namedValues);
 
                             beginEndBlockStatement.StatementList.Statements.Add(createFunctionStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                         }
@@ -76,7 +66,7 @@ namespace TSQL_Inliner.Inliner
 
                         beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
 
-                        ReturnStatement(beginEndBlockStatement);
+                        ReturnStatement(beginEndBlockStatement, setVariableReference);
                         break;
 
                     case "remove":
@@ -99,7 +89,7 @@ namespace TSQL_Inliner.Inliner
             return beginEndBlockStatement;
         }
 
-        public void ReturnStatement(BeginEndBlockStatement beginEndBlockStatement)
+        public void ReturnStatement(BeginEndBlockStatement beginEndBlockStatement, VariableReference setVariableReference = null)
         {
             if (StatementVisitor._returnStatementPlace != null &&
                 StatementVisitor._returnStatementPlace.StatementList != null &&
@@ -141,10 +131,23 @@ namespace TSQL_Inliner.Inliner
                     });
                 }
             }
+
+            if (setVariableReference != null)
+            {
+                beginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
+                {
+                    AssignmentKind = AssignmentKind.Equals,
+                    Variable = setVariableReference,
+                    Expression = new IntegerLiteral()
+                    {
+                        Value = Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter)
+                    }
+                });
+            }
         }
 
         public void Parameters(BeginEndBlockStatement beginEndBlockStatement, List<ProcedureParameter> ProcedureParameters,
-            Dictionary<string, ScalarExpression> namedValues, List<ScalarExpression> unnamedValues)
+             List<ScalarExpression> unnamedValues, Dictionary<string, ScalarExpression> namedValues = null)
         {
             int unnamedValuesCounter = 0;
             DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
@@ -162,7 +165,7 @@ namespace TSQL_Inliner.Inliner
                 {
                     declareVariableElement.Value = unnamedValues[unnamedValuesCounter++];
                 }
-                else if (namedValues.Any(a => a.Key == declareVariableElement.VariableName.Value))
+                else if (namedValues != null && namedValues.Any(a => a.Key == declareVariableElement.VariableName.Value))
                 {
                     declareVariableElement.Value = namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value;
                 }
