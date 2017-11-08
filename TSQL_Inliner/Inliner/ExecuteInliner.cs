@@ -23,7 +23,7 @@ namespace TSQL_Inliner.Inliner
             IsFunction = isFunction;
         }
 
-        public BeginEndBlockStatement GetStatementAsInline(SpInfo spInfo, List<ScalarExpression> unnamedValues, Dictionary<string, ScalarExpression> namedValues = null, VariableReference setVariableReference = null)
+        public BeginEndBlockStatement GetStatementAsInline(SpInfo spInfo, List<ScalarExpression> unnamedValues, Dictionary<string, ScalarExpression> namedValues = null, string setVariableReferenceName = null)
         {
             BeginEndBlockStatement beginEndBlockStatement = new BeginEndBlockStatement
             {
@@ -66,7 +66,7 @@ namespace TSQL_Inliner.Inliner
 
                         beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
 
-                        ReturnStatement(beginEndBlockStatement, setVariableReference);
+                        ReturnStatement(beginEndBlockStatement, setVariableReferenceName);
                         break;
 
                     case "remove":
@@ -89,7 +89,7 @@ namespace TSQL_Inliner.Inliner
             return beginEndBlockStatement;
         }
 
-        public void ReturnStatement(BeginEndBlockStatement beginEndBlockStatement, VariableReference setVariableReference = null)
+        public void ReturnStatement(BeginEndBlockStatement beginEndBlockStatement, string setVariableReferenceName = null)
         {
             if (StatementVisitor._returnStatementPlace != null &&
                 StatementVisitor._returnStatementPlace.StatementList != null &&
@@ -132,12 +132,15 @@ namespace TSQL_Inliner.Inliner
                 }
             }
 
-            if (setVariableReference != null)
+            if (!string.IsNullOrEmpty(setVariableReferenceName))
             {
                 beginEndBlockStatement.StatementList.Statements.Add(new SetVariableStatement()
                 {
                     AssignmentKind = AssignmentKind.Equals,
-                    Variable = setVariableReference,
+                    Variable = new VariableReference()
+                    {
+                        Name = setVariableReferenceName
+                    },
                     Expression = new IntegerLiteral()
                     {
                         Value = Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter)
