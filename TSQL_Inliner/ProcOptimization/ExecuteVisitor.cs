@@ -112,7 +112,7 @@ namespace TSQL_Inliner.ProcOptimization
             {
                 if (returnStatement.Expression is FunctionCall && ((FunctionCall)returnStatement.Expression).CallTarget != null)
                 {
-                    var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression);
+                    var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
                     if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
                     {
                         returnStatement.Expression = null;
@@ -158,7 +158,7 @@ namespace TSQL_Inliner.ProcOptimization
             return newBody;
         }
 
-        private BeginEndBlockStatement ExecuteFunctionStatement(FunctionCall functionCall, string setVariableReferenceName = null)
+        private BeginEndBlockStatement ExecuteFunctionStatement(FunctionCall functionCall, string setVariableReferenceName = null, bool isReturn = false)
         {
             SpInfo spInfo = new SpInfo
             {
@@ -176,6 +176,14 @@ namespace TSQL_Inliner.ProcOptimization
             ExecuteInliner executeInliner = new ExecuteInliner();
             setVariableReferenceName = setVariableReferenceName ?? executeInliner.GetReturnValueName();
             BeginEndBlockStatement newBody = executeInliner.GetStatementAsInline(spInfo, functionCall.Parameters.ToList(), null, setVariableReferenceName);
+            if (isReturn)
+                newBody.StatementList.Statements.Add(new ReturnStatement()
+                {
+                     Expression=new VariableReference()
+                     {
+                          Name= ProcOptimizer.BuildNewName("@ReturnValue", ProcOptimizer.VariableCounter)
+                     }
+                });
             return newBody;
         }
 
