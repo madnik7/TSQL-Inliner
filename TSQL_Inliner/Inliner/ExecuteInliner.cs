@@ -183,9 +183,9 @@ namespace TSQL_Inliner.Inliner
                 {
                     declareVariableElement.Value = unnamedValues[unnamedValuesCounter++];
                 }
-                else if (namedValues != null && namedValues.Any(a => a.Key == declareVariableElement.VariableName.Value))
+                else if (namedValues != null && namedValues.Any(a => a.Key == declareVariableElement.VariableName.Value.Substring(0, declareVariableElement.VariableName.Value.IndexOf("_inliner"))))
                 {
-                    declareVariableElement.Value = namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value;
+                    declareVariableElement.Value = namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value.Substring(0, declareVariableElement.VariableName.Value.IndexOf("_inliner"))).Value;
                 }
 
                 declareVariableStatement.Declarations.Add(declareVariableElement);

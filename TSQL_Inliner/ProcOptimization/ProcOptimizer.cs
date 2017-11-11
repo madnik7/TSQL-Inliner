@@ -47,6 +47,10 @@ namespace TSQL_Inliner.ProcOptimization
             string newScript;
             try
             {
+                if (spInfo.Name == "GetSystemContext")
+                {
+
+                }
                 Console.Write($"\nProcessing {spInfo.Schema}.{spInfo.Name}");
                 newScript = ProcessScript(spInfo);
                 if (newScript != null)

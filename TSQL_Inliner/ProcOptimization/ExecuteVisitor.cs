@@ -138,7 +138,8 @@ namespace TSQL_Inliner.ProcOptimization
         {
             SpInfo spInfo = new SpInfo
             {
-                Schema = executableProcedureReference.ProcedureReference.ProcedureReference.Name.SchemaIdentifier.Value,
+                Schema = executableProcedureReference.ProcedureReference.ProcedureReference.Name.SchemaIdentifier == null ?
+                "dbo" : executableProcedureReference.ProcedureReference.ProcedureReference.Name.SchemaIdentifier.Value,
                 Name = executableProcedureReference.ProcedureReference.ProcedureReference.Name.BaseIdentifier.Value
             };
 
@@ -179,10 +180,10 @@ namespace TSQL_Inliner.ProcOptimization
             if (isReturn)
                 newBody.StatementList.Statements.Add(new ReturnStatement()
                 {
-                     Expression=new VariableReference()
-                     {
-                          Name= ProcOptimizer.BuildNewName("@ReturnValue", ProcOptimizer.VariableCounter)
-                     }
+                    Expression = new VariableReference()
+                    {
+                        Name = ProcOptimizer.BuildNewName("@ReturnValue", ProcOptimizer.VariableCounter)
+                    }
                 });
             return newBody;
         }
