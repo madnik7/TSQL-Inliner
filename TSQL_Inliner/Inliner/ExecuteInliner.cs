@@ -43,6 +43,9 @@ namespace TSQL_Inliner.Inliner
                         {
                             CreateProcedureStatement createProcedureStatement = (CreateProcedureStatement)batche.Statements.FirstOrDefault(a => a is CreateProcedureStatement);
 
+                            if (createProcedureStatement.Parameters.Any(a => a.DataType is UserDataTypeReference))
+                                goto DoNothing;
+
                             ProcOptimizer.FunctionReturnType = null;
 
                             Parameters(beginEndBlockStatement, createProcedureStatement.Parameters.ToList(), unnamedValues, namedValues);
@@ -54,6 +57,9 @@ namespace TSQL_Inliner.Inliner
                             batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateFunctionStatement));
 
                             CreateFunctionStatement createFunctionStatement = (CreateFunctionStatement)batche.Statements.FirstOrDefault(a => a is CreateFunctionStatement);
+
+                            if (createFunctionStatement.Parameters.Any(a => a.DataType is UserDataTypeReference))
+                                goto DoNothing;
 
                             ProcOptimizer.FunctionReturnType = createFunctionStatement.ReturnType;
 
@@ -83,6 +89,7 @@ namespace TSQL_Inliner.Inliner
                         break;
 
                     case "none":
+                        DoNothing:
                         break;
                 }
             }
@@ -159,6 +166,7 @@ namespace TSQL_Inliner.Inliner
         {
             int unnamedValuesCounter = 0;
             DeclareVariableStatement declareVariableStatement = new DeclareVariableStatement();
+
             foreach (var parameter in ProcedureParameters)
             {
                 DeclareVariableElement declareVariableElement = new DeclareVariableElement()
@@ -169,6 +177,8 @@ namespace TSQL_Inliner.Inliner
                     Value = parameter.Value
                 };
 
+                declareVariableElement.VariableName.Value = ProcOptimizer.BuildNewName(parameter.VariableName.Value, VariableCounter);
+
                 if (unnamedValues != null && unnamedValues.Any() && unnamedValuesCounter < unnamedValues.Count())
                 {
                     declareVariableElement.Value = unnamedValues[unnamedValuesCounter++];
@@ -177,8 +187,6 @@ namespace TSQL_Inliner.Inliner
                 {
                     declareVariableElement.Value = namedValues.FirstOrDefault(a => a.Key == declareVariableElement.VariableName.Value).Value;
                 }
-
-                declareVariableElement.VariableName.Value = ProcOptimizer.BuildNewName(parameter.VariableName.Value, VariableCounter);
 
                 declareVariableStatement.Declarations.Add(declareVariableElement);
 

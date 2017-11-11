@@ -87,7 +87,10 @@ namespace TSQL_Inliner.Inliner
                         {
                             StatementList = new StatementList()
                         };
-                    _returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
+
+                    if (!_returnStatementPlace.StatementList.Statements.Where(a => a is DeclareVariableStatement)
+                        .Any(a => ((DeclareVariableStatement)a).Declarations.Any(b => b.VariableName.Value == declareVariableStatement.Declarations.FirstOrDefault().VariableName.Value)))
+                        _returnStatementPlace.StatementList.Statements.Add(declareVariableStatement);
 
                     SetVariableStatement setVariableStatement = new SetVariableStatement()
                     {
@@ -95,17 +98,9 @@ namespace TSQL_Inliner.Inliner
                         Variable = new VariableReference()
                         {
                             Name = $"@ReturnValue"
-                        }
+                        },
+                        Expression = returnStatement.Expression
                     };
-
-                    if (returnStatement.Expression is ValueExpression)
-                    {
-                        setVariableStatement.Expression = ProcOptimizer.GetScalarExpression(returnStatement);
-                    }
-                    else
-                    {
-                        setVariableStatement.Expression = returnStatement.Expression;
-                    }
 
                     returnBeginEndBlockStatement.StatementList.Statements.Add(setVariableStatement);
                 }

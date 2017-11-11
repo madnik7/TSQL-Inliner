@@ -83,10 +83,6 @@ namespace TSQL_Inliner.ProcOptimization
         public ProcModel ProcessScriptImpl(SpInfo spInfo)
         {
             ProcModel procModel = GetProcModel(spInfo);
-            if (spInfo.Name == "FormatMobileNumber")
-            {
-
-            }
             if (procModel.TSqlFragment == null)
             {
                 Console.Write(" Not Found.");
@@ -148,44 +144,6 @@ namespace TSQL_Inliner.ProcOptimization
             return procModel;
         }
 
-        public ScalarExpression GetScalarExpression(ReturnStatement returnStatement)
-        {
-            if ((returnStatement).Expression is VariableReference)
-                return new VariableReference()
-                {
-                    Name = ((VariableReference)(returnStatement).Expression).Name
-                };
-
-            if ((returnStatement).Expression is NullLiteral)
-                return new NullLiteral()
-                {
-                     Value= ((NullLiteral)(returnStatement).Expression).Value
-                };
-
-            if ((returnStatement).Expression is IntegerLiteral)
-                return new IntegerLiteral()
-                {
-                    Value = ((IntegerLiteral)(returnStatement).Expression).Value
-                };
-
-            if ((returnStatement).Expression is BinaryLiteral)
-                return new BinaryLiteral()
-                {
-                    Value = ((BinaryLiteral)(returnStatement).Expression).Value
-                };
-
-            if ((returnStatement).Expression is StringLiteral)
-                return new StringLiteral()
-                {
-                    Value = ((StringLiteral)(returnStatement).Expression).Value
-                };
-
-            return new StringLiteral
-            {
-                Value = null
-            };
-        }
-
         public SqlDataTypeOption GetSqlDataTypeOption(ReturnStatement returnStatement)
         {
             if (FunctionReturnType == null)
@@ -243,7 +201,7 @@ namespace TSQL_Inliner.ProcOptimization
                         return SqlDataTypeOption.VarChar;
 
                     default:
-                        return SqlDataTypeOption.Int;
+                        return SqlDataTypeOption.None;
                 }
         }
     }
