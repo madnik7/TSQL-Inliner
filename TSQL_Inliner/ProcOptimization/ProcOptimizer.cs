@@ -47,7 +47,7 @@ namespace TSQL_Inliner.ProcOptimization
             string newScript;
             try
             {
-                if (spInfo.Name == "GetSystemContext")
+                if (spInfo.Name == "User_Create" && spInfo.Schema == "dbo")
                 {
 
                 }
@@ -68,6 +68,10 @@ namespace TSQL_Inliner.ProcOptimization
 
         string ProcessScript(SpInfo spInfo)
         {
+            if (spInfo.Name == "User_Notify")
+            {
+
+            }
             ProcModel procModel = ProcessScriptImpl(spInfo);
             if (procModel == null)
                 return null;
