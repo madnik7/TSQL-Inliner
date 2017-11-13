@@ -156,11 +156,6 @@ namespace TSQL_Inliner.Inliner
             }
         }
 
-        public string GetReturnValueName()
-        {
-            return Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter);
-        }
-
         public void Parameters(BeginEndBlockStatement beginEndBlockStatement, List<ProcedureParameter> ProcedureParameters,
              List<ScalarExpression> unnamedValues, Dictionary<string, ScalarExpression> namedValues = null)
         {

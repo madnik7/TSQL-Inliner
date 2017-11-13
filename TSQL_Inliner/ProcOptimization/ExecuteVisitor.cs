@@ -175,7 +175,7 @@ namespace TSQL_Inliner.ProcOptimization
             }
 
             ExecuteInliner executeInliner = new ExecuteInliner();
-            setVariableReferenceName = setVariableReferenceName ?? executeInliner.GetReturnValueName();
+            setVariableReferenceName = setVariableReferenceName ?? ProcOptimizer.BuildNewName("@ReturnValue", ProcOptimizer.VariableCounter);
             BeginEndBlockStatement newBody = executeInliner.GetStatementAsInline(spInfo, functionCall.Parameters.ToList(), null, setVariableReferenceName);
             if (isReturn)
                 newBody.StatementList.Statements.Add(new ReturnStatement()

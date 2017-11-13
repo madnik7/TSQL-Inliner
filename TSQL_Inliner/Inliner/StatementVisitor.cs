@@ -75,10 +75,7 @@ namespace TSQL_Inliner.Inliner
 
                     declareVariableStatement.Declarations.Add(new DeclareVariableElement()
                     {
-                        DataType = new SqlDataTypeReference()
-                        {
-                            SqlDataTypeOption = ProcOptimizer.GetSqlDataTypeOption(returnStatement)
-                        },
+                        DataType = ((ScalarFunctionReturnType)Program.ProcOptimizer.FunctionReturnType).DataType,
                         VariableName = new Identifier() { Value = Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter) }
                     });
 
