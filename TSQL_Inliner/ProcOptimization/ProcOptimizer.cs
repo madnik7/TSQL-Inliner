@@ -47,10 +47,6 @@ namespace TSQL_Inliner.ProcOptimization
             string newScript;
             try
             {
-                if (spInfo.Name == "User_Create" && spInfo.Schema == "dbo")
-                {
-
-                }
                 Console.Write($"\nProcessing {spInfo.Schema}.{spInfo.Name}");
                 newScript = ProcessScript(spInfo);
                 if (newScript != null)
@@ -68,10 +64,6 @@ namespace TSQL_Inliner.ProcOptimization
 
         string ProcessScript(SpInfo spInfo)
         {
-            if (spInfo.Name == "User_Notify")
-            {
-
-            }
             ProcModel procModel = ProcessScriptImpl(spInfo);
             if (procModel == null)
                 return null;
