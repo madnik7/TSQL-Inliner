@@ -55,6 +55,14 @@ namespace TSQL_Inliner.Inliner
                 ((VariableReference)node.ParameterValue).Name = Program.ProcOptimizer.BuildNewName(((VariableReference)node.ParameterValue).Name, VariableCounter);
         }
 
+        public override void Visit(DeclareVariableStatement node)
+        {
+            if (node.Declarations.Any(a => a.Value == null))
+                foreach (var i in node.Declarations.Where(a => a.Value == null))
+                    i.Value = new NullLiteral() { Value = null };
+            base.Visit(node);
+        }
+
         public override void Visit(StatementList node)
         {
             //if we have a "ReturnStatement" inside stored procedures, we need to end up stored procedure code and resume the master file
@@ -81,7 +89,8 @@ namespace TSQL_Inliner.Inliner
                         {
                             SqlDataTypeOption = SqlDataTypeOption.Int
                         },
-                        VariableName = new Identifier() { Value = Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter) }
+                        VariableName = new Identifier() { Value = Program.ProcOptimizer.BuildNewName("@ReturnValue", VariableCounter) },
+                        Value = new NullLiteral() { Value = null }
                     });
 
                     if (_returnStatementPlace == null || _returnStatementPlace.StatementList == null)

@@ -101,7 +101,7 @@ namespace TSQL_Inliner.ProcOptimization
                         var newBody = ExecuteFunctionStatement((FunctionCall)declaration.Value, declaration.VariableName.Value);
                         if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
                         {
-                            declaration.Value = null;
+                            declaration.Value = new NullLiteral() { Value = null };
                             node.Statements.Insert(node.Statements.IndexOf(declareVariableStatement) + 1, newBody);
                             newStatements.Add(newBody);
                         }
