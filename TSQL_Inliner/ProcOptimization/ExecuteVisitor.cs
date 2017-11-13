@@ -71,7 +71,8 @@ namespace TSQL_Inliner.ProcOptimization
                 var executableProcedureReference = (ExecutableProcedureReference)((executeStatement).ExecuteSpecification.ExecutableEntity);
                 if (executableProcedureReference.ProcedureReference.ProcedureReference.Name.DatabaseIdentifier == null)
                 {
-                    var newBody = ExecuteStatement(executableProcedureReference);
+                    string setVariableReferenceName = executeStatement.ExecuteSpecification.Variable is VariableReference ? executeStatement.ExecuteSpecification.Variable.Name : null;
+                    var newBody = ExecuteStatement(executableProcedureReference, setVariableReferenceName);
                     if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
                     {
                         node.Statements[node.Statements.IndexOf(executeStatement)] = newBody;
@@ -134,7 +135,7 @@ namespace TSQL_Inliner.ProcOptimization
 
         #region Methods
 
-        private BeginEndBlockStatement ExecuteStatement(ExecutableProcedureReference executableProcedureReference)
+        private BeginEndBlockStatement ExecuteStatement(ExecutableProcedureReference executableProcedureReference, string setVariableReferenceName = null)
         {
             SpInfo spInfo = new SpInfo
             {
@@ -155,7 +156,7 @@ namespace TSQL_Inliner.ProcOptimization
             var unnamedValues = executableProcedureReference.Parameters.Where(a => a.Variable == null).Select(a => a.ParameterValue).ToList();
 
             ExecuteInliner executeInliner = new ExecuteInliner();
-            BeginEndBlockStatement newBody = executeInliner.GetStatementAsInline(spInfo, unnamedValues, namedValues);
+            BeginEndBlockStatement newBody = executeInliner.GetStatementAsInline(spInfo, unnamedValues, namedValues, setVariableReferenceName);
             return newBody;
         }
 

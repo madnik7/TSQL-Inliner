@@ -44,7 +44,7 @@ namespace TSQL_Inliner
             }
 
             appArgument.Schemas = schemas.ToArray();
-            if (appArgument.ConnectionString == null || appArgument.Schemas.Length==0)
+            if (appArgument.ConnectionString == null || appArgument.Schemas.Length == 0)
                 return null;
 
             return appArgument;
@@ -71,7 +71,7 @@ namespace TSQL_Inliner
 
             //filter ProcName
             if (appArgs.ProcName != null)
-                allSPs = allSPs.Where(x=>  x.Name==appArgs.ProcName).ToList();
+                allSPs = allSPs.Where(x => x.Name == appArgs.ProcName).ToList();
 
             foreach (var spInfo in allSPs)
             {

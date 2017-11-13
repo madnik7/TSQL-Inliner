@@ -66,7 +66,7 @@ namespace TSQL_Inliner.Inliner
         public override void Visit(StatementList node)
         {
             //if we have a "ReturnStatement" inside stored procedures, we need to end up stored procedure code and resume the master file
-            //for this purpos, create variables and set "GOTO" lable for jump to that lable
+            //for this purpos, create variables and set "GOTO" label for jump to that label
             foreach (ReturnStatement returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
                 //Program.ProcOptimizer.hasReturnStatement = true;
@@ -143,6 +143,7 @@ namespace TSQL_Inliner.Inliner
                 beginEndBlockStatement.StatementList.Statements.Add(node.ThenStatement);
                 node.ThenStatement = beginEndBlockStatement;
             }
+
             base.Visit(node);
         }
     }
