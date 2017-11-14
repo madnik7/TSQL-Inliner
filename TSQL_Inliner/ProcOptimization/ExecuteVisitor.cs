@@ -81,21 +81,6 @@ namespace TSQL_Inliner.ProcOptimization
                 }
             }
 
-            foreach (IfStatement ifStatement in node.Statements.Where(a => a is IfStatement && ((IfStatement)a).ThenStatement is ExecuteStatement).ToList())
-            {
-                var executableProcedureReference = (ExecutableProcedureReference)((ExecuteStatement)ifStatement.ThenStatement).ExecuteSpecification.ExecutableEntity;
-                if (executableProcedureReference.ProcedureReference.ProcedureReference.Name.DatabaseIdentifier == null)
-                {
-                    string setVariableReferenceName = ((ExecuteStatement)ifStatement.ThenStatement).ExecuteSpecification.Variable is VariableReference ? ((ExecuteStatement)ifStatement.ThenStatement).ExecuteSpecification.Variable.Name : null;
-                    var newBody = ExecuteStatement(executableProcedureReference, setVariableReferenceName);
-                    ifStatement.ThenStatement = newBody;
-                    if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
-                    {
-                        newStatements.Add(newBody);
-                    }
-                }
-            }
-
             foreach (SetVariableStatement setVariableStatement in node.Statements.Where(a => a is SetVariableStatement).ToList())
             {
                 if (setVariableStatement.Expression is FunctionCall && ((FunctionCall)setVariableStatement.Expression).CallTarget != null)
@@ -138,21 +123,48 @@ namespace TSQL_Inliner.ProcOptimization
                 }
             }
 
-            //foreach (IfStatement ifStatement in node.Statements.Where(a => a is IfStatement).ToList())
-            //{
-            //    if (ifStatement.Predicate is BooleanParenthesisExpression &&
-            //        ((BooleanParenthesisExpression)ifStatement.Predicate).Expression is BooleanComparisonExpression &&
-            //        ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression is FunctionCall)
-            //    {
-            //        var newBody = ExecuteFunctionStatement((FunctionCall)((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression, isReturn: true);
-            //        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
-            //        {
-            //            ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression = null;
-            //            node.Statements[node.Statements.IndexOf(ifStatement)] = newBody;
-            //            newStatements.Add(newBody);
-            //        }
-            //    }
-            //}
+            //Handle Function/StoredProcedure call in IfStatement
+            foreach (IfStatement ifStatement in node.Statements.Where(a => a is IfStatement).ToList())
+            {
+                if (ifStatement.ThenStatement is ExecuteStatement executeStatement)
+                {
+                    var executableProcedureReference = (ExecutableProcedureReference)executeStatement.ExecuteSpecification.ExecutableEntity;
+                    if (executableProcedureReference.ProcedureReference.ProcedureReference.Name.DatabaseIdentifier == null)
+                    {
+                        string setVariableReferenceName = executeStatement.ExecuteSpecification.Variable is VariableReference ? executeStatement.ExecuteSpecification.Variable.Name : null;
+                        var newBody = ExecuteStatement(executableProcedureReference, setVariableReferenceName);
+                        ifStatement.ThenStatement = newBody;
+                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        {
+                            newStatements.Add(newBody);
+                        }
+                    }
+                }
+                else if (ifStatement.ThenStatement is SetVariableStatement setVariableStatement)
+                {
+                    if (setVariableStatement.Expression is FunctionCall && ((FunctionCall)setVariableStatement.Expression).CallTarget != null)
+                    {
+                        var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable.Name);
+                        ifStatement.ThenStatement = newBody;
+                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        {
+                            newStatements.Add(newBody);
+                        }
+                    }
+                }
+                else if (ifStatement.ThenStatement is ReturnStatement returnStatement)
+                {
+                    if (returnStatement.Expression is FunctionCall && ((FunctionCall)returnStatement.Expression).CallTarget != null)
+                    {
+                        var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
+                        ifStatement.ThenStatement = newBody;
+                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        {
+                            newStatements.Add(newBody);
+                        }
+                    }
+                }
+            }
 
             base.Visit(node);
         }

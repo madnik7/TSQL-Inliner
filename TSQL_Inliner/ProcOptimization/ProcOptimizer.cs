@@ -85,7 +85,9 @@ namespace TSQL_Inliner.ProcOptimization
             ProcModel procModel = GetProcModel(spInfo);
             if (procModel.TSqlFragment == null)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(" Not Found.");
+                Console.ResetColor();               
                 return null;
             }
 

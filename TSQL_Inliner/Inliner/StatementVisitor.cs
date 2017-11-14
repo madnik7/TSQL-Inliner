@@ -58,7 +58,7 @@ namespace TSQL_Inliner.Inliner
         public override void Visit(DeclareVariableStatement node)
         {
             if (node.Declarations.Any(a => a.Value == null))
-                foreach (var i in node.Declarations.Where(a => a.Value == null))
+                foreach (var i in node.Declarations.Where(a => a.Value == null && !a.DataType.Name.BaseIdentifier.Value.Contains("ud_")))
                     i.Value = new NullLiteral() { Value = null };
             base.Visit(node);
         }
@@ -143,26 +143,7 @@ namespace TSQL_Inliner.Inliner
                 beginEndBlockStatement.StatementList.Statements.Add(node.ThenStatement);
                 node.ThenStatement = beginEndBlockStatement;
             }
-            //if (node.Predicate is BooleanParenthesisExpression && ((BooleanParenthesisExpression)node.Predicate).Expression is BooleanComparisonExpression)
-            //{
-            //    if (((BooleanComparisonExpression)((BooleanParenthesisExpression)node.Predicate).Expression).FirstExpression is FunctionCall)
-            //    {
-
-            //    }
-            //}
             base.Visit(node);
         }
-
-        //public override void Visit(IIfCall node)
-        //{
-        //    if (node.Predicate is BooleanComparisonExpression && ((BooleanComparisonExpression)node.Predicate).FirstExpression is FunctionCall)
-        //    {
-        //        //if (((FunctionCall)((BooleanComparisonExpression)node.Predicate).FirstExpression).FunctionName is Identifier)
-        //        //{
-        //        //    ((FunctionCall)((BooleanComparisonExpression)node.Predicate).FirstExpression).
-        //        //}
-        //    }
-        //    base.Visit(node);
-        //}
     }
 }
