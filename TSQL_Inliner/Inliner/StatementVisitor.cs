@@ -128,31 +128,6 @@ namespace TSQL_Inliner.Inliner
                 //Replace "ReturnStatement" by new value ...
                 node.Statements[node.Statements.IndexOf(returnStatement)] = returnBeginEndBlockStatement;
             }
-
-            foreach (DeclareTableVariableStatement declareTableVariableStatement in node.Statements.Where(a => a is DeclareTableVariableStatement).ToList())
-            {
-                BeginEndBlockStatement deleteBeginEndBlockStatement = new BeginEndBlockStatement()
-                {
-                    StatementList = new StatementList()
-                };
-
-                DeleteStatement deleteStatement = new DeleteStatement()
-                {
-                    DeleteSpecification = new DeleteSpecification()
-                    {
-                        Target = new VariableTableReference()
-                        {
-                            Variable = new VariableReference()
-                            {
-                                Name = declareTableVariableStatement.Body.VariableName.Value
-                            }
-                        }
-                    }
-                };
-
-                deleteBeginEndBlockStatement.StatementList.Statements.Add(deleteStatement);
-                node.Statements.Insert(node.Statements.IndexOf(declareTableVariableStatement) + 1, deleteBeginEndBlockStatement);
-            }
             base.Visit(node);
         }
 
@@ -168,26 +143,7 @@ namespace TSQL_Inliner.Inliner
                 beginEndBlockStatement.StatementList.Statements.Add(node.ThenStatement);
                 node.ThenStatement = beginEndBlockStatement;
             }
-            //if (node.Predicate is BooleanParenthesisExpression && ((BooleanParenthesisExpression)node.Predicate).Expression is BooleanComparisonExpression)
-            //{
-            //    if (((BooleanComparisonExpression)((BooleanParenthesisExpression)node.Predicate).Expression).FirstExpression is FunctionCall)
-            //    {
-
-            //    }
-            //}
             base.Visit(node);
         }
-
-        //public override void Visit(IIfCall node)
-        //{
-        //    if (node.Predicate is BooleanComparisonExpression && ((BooleanComparisonExpression)node.Predicate).FirstExpression is FunctionCall)
-        //    {
-        //        //if (((FunctionCall)((BooleanComparisonExpression)node.Predicate).FirstExpression).FunctionName is Identifier)
-        //        //{
-        //        //    ((FunctionCall)((BooleanComparisonExpression)node.Predicate).FirstExpression).
-        //        //}
-        //    }
-        //    base.Visit(node);
-        //}
     }
 }
