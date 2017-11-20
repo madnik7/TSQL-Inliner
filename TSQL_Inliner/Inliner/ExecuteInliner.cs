@@ -61,6 +61,10 @@ namespace TSQL_Inliner.Inliner
                             if (createFunctionStatement.Parameters.Any(a => a.DataType is UserDataTypeReference))
                                 goto DoNothing;
 
+                            if (createFunctionStatement.ReturnType is ScalarFunctionReturnType &&
+                                ((ScalarFunctionReturnType)createFunctionStatement.ReturnType).DataType is UserDataTypeReference)
+                                goto DoNothing;
+
                             ProcOptimizer.FunctionReturnType = createFunctionStatement.ReturnType;
 
                             Parameters(beginEndBlockStatement, createFunctionStatement.Parameters.ToList(), unnamedValues, namedValues);

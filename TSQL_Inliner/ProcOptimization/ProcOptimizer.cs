@@ -44,21 +44,24 @@ namespace TSQL_Inliner.ProcOptimization
 
         public void Process(SpInfo spInfo)
         {
-            string newScript;
-            try
+            if (spInfo.Schema != null && spInfo.Schema.ToLower() != "sys")
             {
-                Console.Write($"\nProcessing {spInfo.Schema}.{spInfo.Name}");
-                newScript = ProcessScript(spInfo);
-                if (newScript != null)
+                string newScript;
+                try
                 {
-                    TSQLConnection.WriteScript(newScript);
+                    Console.Write($"\nProcessing {spInfo.Schema}.{spInfo.Name}");
+                    newScript = ProcessScript(spInfo);
+                    if (newScript != null)
+                    {
+                        TSQLConnection.WriteScript(newScript);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write($"Error! {ex.Message}");
-                Console.ResetColor();
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write($"Error! {ex.Message}");
+                    Console.ResetColor();
+                }
             }
         }
 
@@ -87,7 +90,7 @@ namespace TSQL_Inliner.ProcOptimization
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(" Not Found.");
-                Console.ResetColor();               
+                Console.ResetColor();
                 return null;
             }
 

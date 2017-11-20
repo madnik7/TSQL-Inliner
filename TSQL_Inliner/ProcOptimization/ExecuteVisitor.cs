@@ -66,6 +66,11 @@ namespace TSQL_Inliner.ProcOptimization
         /// <param name="node"></param>
         public override void Visit(StatementList node)
         {
+            foreach (PrintStatement printStatement in node.Statements.Where(a => a is PrintStatement && ((PrintStatement)a).Expression is FunctionCall))
+            {
+                printStatement.Expression = ReturnVisitorHandler((FunctionCall)printStatement.Expression);
+            }
+
             foreach (ExecuteStatement executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
                 var executableProcedureReference = (ExecutableProcedureReference)((executeStatement).ExecuteSpecification.ExecutableEntity);
@@ -83,13 +88,17 @@ namespace TSQL_Inliner.ProcOptimization
 
             foreach (SetVariableStatement setVariableStatement in node.Statements.Where(a => a is SetVariableStatement).ToList())
             {
-                if (setVariableStatement.Expression is FunctionCall && ((FunctionCall)setVariableStatement.Expression).CallTarget != null)
+                if (setVariableStatement.Expression is FunctionCall functionCall && ((FunctionCall)setVariableStatement.Expression).CallTarget != null)
                 {
-                    var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable.Name);
-                    if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                    setVariableStatement.Expression = ReturnVisitorHandler(functionCall);
+                    if (setVariableStatement.Expression is FunctionCall)
                     {
-                        node.Statements[node.Statements.IndexOf(setVariableStatement)] = newBody;
-                        newStatements.Add(newBody);
+                        var newBody = ExecuteFunctionStatement(functionCall, setVariableStatement.Variable.Name);
+                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        {
+                            node.Statements[node.Statements.IndexOf(setVariableStatement)] = newBody;
+                            newStatements.Add(newBody);
+                        }
                     }
                 }
             }
@@ -97,28 +106,36 @@ namespace TSQL_Inliner.ProcOptimization
             foreach (DeclareVariableStatement declareVariableStatement in node.Statements.Where(a => a is DeclareVariableStatement).ToList())
             {
                 foreach (var declaration in declareVariableStatement.Declarations)
-                    if (declaration.Value is FunctionCall && ((FunctionCall)declaration.Value).CallTarget != null)
+                    if (declaration.Value is FunctionCall functionCall && ((FunctionCall)declaration.Value).CallTarget != null)
                     {
-                        var newBody = ExecuteFunctionStatement((FunctionCall)declaration.Value, declaration.VariableName.Value);
-                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        declaration.Value = ReturnVisitorHandler(functionCall);
+                        if (declaration.Value is FunctionCall)
                         {
-                            declaration.Value = new NullLiteral() { Value = null };
-                            node.Statements.Insert(node.Statements.IndexOf(declareVariableStatement) + 1, newBody);
-                            newStatements.Add(newBody);
+                            var newBody = ExecuteFunctionStatement((FunctionCall)declaration.Value, declaration.VariableName.Value);
+                            if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                            {
+                                declaration.Value = new NullLiteral() { Value = null };
+                                node.Statements.Insert(node.Statements.IndexOf(declareVariableStatement) + 1, newBody);
+                                newStatements.Add(newBody);
+                            }
                         }
                     }
             }
 
             foreach (ReturnStatement returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
-                if (returnStatement.Expression is FunctionCall && ((FunctionCall)returnStatement.Expression).CallTarget != null)
+                if (returnStatement.Expression is FunctionCall functionCall && ((FunctionCall)returnStatement.Expression).CallTarget != null)
                 {
-                    var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
-                    if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                    returnStatement.Expression = ReturnVisitorHandler(functionCall);
+                    if (returnStatement.Expression is FunctionCall)
                     {
-                        returnStatement.Expression = null;
-                        node.Statements[node.Statements.IndexOf(returnStatement)] = newBody;
-                        newStatements.Add(newBody);
+                        var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
+                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        {
+                            returnStatement.Expression = null;
+                            node.Statements[node.Statements.IndexOf(returnStatement)] = newBody;
+                            newStatements.Add(newBody);
+                        }
                     }
                 }
             }
@@ -126,6 +143,13 @@ namespace TSQL_Inliner.ProcOptimization
             //Handle Function/StoredProcedure call in IfStatement
             foreach (IfStatement ifStatement in node.Statements.Where(a => a is IfStatement).ToList())
             {
+                if (ifStatement.Predicate is BooleanParenthesisExpression &&
+                    ((BooleanParenthesisExpression)ifStatement.Predicate).Expression is BooleanComparisonExpression &&
+                    ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression is FunctionCall FirstExpression)
+                {
+                    ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression = ReturnVisitorHandler(FirstExpression);
+                }
+
                 if (ifStatement.ThenStatement is ExecuteStatement executeStatement)
                 {
                     var executableProcedureReference = (ExecutableProcedureReference)executeStatement.ExecuteSpecification.ExecutableEntity;
@@ -142,30 +166,39 @@ namespace TSQL_Inliner.ProcOptimization
                 }
                 else if (ifStatement.ThenStatement is SetVariableStatement setVariableStatement)
                 {
-                    if (setVariableStatement.Expression is FunctionCall && ((FunctionCall)setVariableStatement.Expression).CallTarget != null)
+                    if (setVariableStatement.Expression is FunctionCall functionCall && ((FunctionCall)setVariableStatement.Expression).CallTarget != null)
                     {
-                        var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable.Name);
-                        ifStatement.ThenStatement = newBody;
-                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        setVariableStatement.Expression = ReturnVisitorHandler(functionCall);
+                        if (setVariableStatement.Expression is FunctionCall)
                         {
-                            newStatements.Add(newBody);
+                            var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable.Name);
+                            ifStatement.ThenStatement = newBody;
+                            if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                            {
+                                newStatements.Add(newBody);
+                            }
                         }
                     }
                 }
                 else if (ifStatement.ThenStatement is ReturnStatement returnStatement)
                 {
-                    if (returnStatement.Expression is FunctionCall && ((FunctionCall)returnStatement.Expression).CallTarget != null)
+                    if (returnStatement.Expression is FunctionCall functionCall && ((FunctionCall)returnStatement.Expression).CallTarget != null)
                     {
-                        var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
-                        ifStatement.ThenStatement = newBody;
-                        if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                        returnStatement.Expression = ReturnVisitorHandler(functionCall);
+                        if (returnStatement.Expression is FunctionCall)
                         {
-                            newStatements.Add(newBody);
+                            var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
+                            ifStatement.ThenStatement = newBody;
+                            if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
+                            {
+                                newStatements.Add(newBody);
+                            }
                         }
                     }
                 }
             }
 
+            //set 'DeleteStatement' after any 'DeclareTableVariableStatement'
             foreach (DeclareTableVariableStatement declareTableVariableStatement in node.Statements.Where(a => a is DeclareTableVariableStatement).ToList())
             {
                 BeginEndBlockStatement deleteBeginEndBlockStatement = new BeginEndBlockStatement()
@@ -202,6 +235,37 @@ namespace TSQL_Inliner.ProcOptimization
         }
 
         #region Methods
+
+
+        private ScalarExpression ReturnVisitorHandler(FunctionCall functionCall)
+        {
+            SpInfo spInfo = new SpInfo
+            {
+                Schema = (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+                Name = functionCall.FunctionName.Value
+            };
+            ProcModel procModel = ProcOptimizer.GetProcModel(spInfo);
+            if (((TSqlScript)procModel.TSqlFragment).Batches.FirstOrDefault().Statements.FirstOrDefault() is CreateFunctionStatement createFunctionStatement)
+            {
+                BeginEndBlockStatement beginEndBlock = (BeginEndBlockStatement)createFunctionStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement);
+                if (beginEndBlock.StatementList.Statements.Count() == 1 && beginEndBlock.StatementList.Statements.FirstOrDefault() is ReturnStatement returnStatement)
+                {
+                    ReturnVisitor returnVisitor = new ReturnVisitor();
+
+                    int unnamedValuesCounter = 0;
+                    var unnamedValues = functionCall.Parameters;
+                    foreach (var parameter in createFunctionStatement.Parameters)
+                    {
+                        returnVisitor.dictionary.Add(parameter, unnamedValues[unnamedValuesCounter++]);
+                    }
+
+                    beginEndBlock.Accept(returnVisitor);
+
+                    return returnStatement.Expression;
+                }
+            }
+            return functionCall;
+        }
 
         private BeginEndBlockStatement ExecuteStatement(ExecutableProcedureReference executableProcedureReference, string setVariableReferenceName = null)
         {
