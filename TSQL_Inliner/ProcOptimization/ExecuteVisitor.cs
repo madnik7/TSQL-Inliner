@@ -71,22 +71,44 @@ namespace TSQL_Inliner.ProcOptimization
                 printStatement.Expression = ReturnVisitorHandler((FunctionCall)printStatement.Expression);
             }
 
-            foreach (SelectStatement selectStatement in node.Statements.Where(a => a is SelectStatement))
+            foreach (SelectStatement selectStatement in node.Statements.Where(a => a is SelectStatement && ((SelectStatement)a).QueryExpression is QuerySpecification))
             {
-                if (selectStatement.QueryExpression is QuerySpecification &&
-                    ((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition is BooleanComparisonExpression)
+                if (((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition is BooleanComparisonExpression)
                 {
                     if (((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).FirstExpression is FunctionCall firstExpression)
                         ((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(firstExpression);
                     if (((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).SecondExpression is FunctionCall secondExpression)
                         ((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(secondExpression);
                 }
-                else if (selectStatement.QueryExpression is QuerySpecification &&
-                    ((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
+                else if (((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
                 {
                     ((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition = SelectHandler(booleanBinaryExpression);
                 }
+
+                foreach (SelectSetVariable selectSetVariable in ((QuerySpecification)selectStatement.QueryExpression).SelectElements)
+                {
+                    if (selectSetVariable.Expression is FunctionCall)
+                    {
+                        selectSetVariable.Expression = ReturnVisitorHandler((FunctionCall)selectSetVariable.Expression);
+                    }
+                }
             }
+
+            foreach (UpdateStatement updateStatement in node.Statements.Where(a => a is UpdateStatement))
+            {
+                if ((updateStatement.UpdateSpecification).WhereClause.SearchCondition is BooleanComparisonExpression)
+                {
+                    if (((BooleanComparisonExpression)(updateStatement.UpdateSpecification).WhereClause.SearchCondition).FirstExpression is FunctionCall firstExpression)
+                        ((BooleanComparisonExpression)(updateStatement.UpdateSpecification).WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(firstExpression);
+                    if (((BooleanComparisonExpression)(updateStatement.UpdateSpecification).WhereClause.SearchCondition).SecondExpression is FunctionCall secondExpression)
+                        ((BooleanComparisonExpression)(updateStatement.UpdateSpecification).WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(secondExpression);
+                }
+                else if ((updateStatement.UpdateSpecification).WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
+                {
+                    (updateStatement.UpdateSpecification).WhereClause.SearchCondition = SelectHandler(booleanBinaryExpression);
+                }
+            }
+
 
             foreach (ExecuteStatement executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
