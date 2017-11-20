@@ -71,6 +71,23 @@ namespace TSQL_Inliner.ProcOptimization
                 printStatement.Expression = ReturnVisitorHandler((FunctionCall)printStatement.Expression);
             }
 
+            foreach (SelectStatement selectStatement in node.Statements.Where(a => a is SelectStatement))
+            {
+                if (selectStatement.QueryExpression is QuerySpecification &&
+                    ((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition is BooleanComparisonExpression)
+                {
+                    if (((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).FirstExpression is FunctionCall firstExpression)
+                        ((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(firstExpression);
+                    if (((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).SecondExpression is FunctionCall secondExpression)
+                        ((BooleanComparisonExpression)((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(secondExpression);
+                }
+                else if (selectStatement.QueryExpression is QuerySpecification &&
+                    ((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
+                {
+                    ((QuerySpecification)selectStatement.QueryExpression).WhereClause.SearchCondition = SelectHandler(booleanBinaryExpression);
+                }
+            }
+
             foreach (ExecuteStatement executeStatement in node.Statements.Where(a => a is ExecuteStatement).ToList())
             {
                 var executableProcedureReference = (ExecutableProcedureReference)((executeStatement).ExecuteSpecification.ExecutableEntity);
@@ -236,6 +253,30 @@ namespace TSQL_Inliner.ProcOptimization
 
         #region Methods
 
+        private BooleanBinaryExpression SelectHandler(BooleanBinaryExpression booleanComparisonExpression)
+        {
+            if (booleanComparisonExpression.FirstExpression is BooleanBinaryExpression)
+                SelectHandler((BooleanBinaryExpression)booleanComparisonExpression.FirstExpression);
+            else if (booleanComparisonExpression.FirstExpression is BooleanComparisonExpression)
+            {
+                if (((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).FirstExpression is FunctionCall firstExpression)
+                    ((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).FirstExpression = ReturnVisitorHandler(firstExpression);
+                else if (((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).SecondExpression is FunctionCall secondExpression)
+                    ((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).SecondExpression = ReturnVisitorHandler(secondExpression);
+            }
+
+            if (booleanComparisonExpression.SecondExpression is BooleanBinaryExpression)
+                SelectHandler((BooleanBinaryExpression)booleanComparisonExpression.SecondExpression);
+            else if (booleanComparisonExpression.SecondExpression is BooleanComparisonExpression)
+            {
+                if (((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).FirstExpression is FunctionCall firstExpression)
+                    ((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).FirstExpression = ReturnVisitorHandler(firstExpression);
+                else if (((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).SecondExpression is FunctionCall secondExpression)
+                    ((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).SecondExpression = ReturnVisitorHandler(secondExpression);
+            }
+
+            return booleanComparisonExpression;
+        }
 
         private ScalarExpression ReturnVisitorHandler(FunctionCall functionCall)
         {
