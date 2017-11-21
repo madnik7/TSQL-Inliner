@@ -11,123 +11,123 @@ namespace TSQL_Inliner.ProcOptimization
         ProcOptimizer ProcOptimizer { get { return Program.ProcOptimizer; } }
         List<TSqlFragment> newStatements = new List<TSqlFragment>();
 
-        public override void Visit(SelectStatement node)
-        {
-            if (node.QueryExpression is QuerySpecification querySpecification && querySpecification.WhereClause != null)
-            {
-                if (querySpecification.WhereClause.SearchCondition is BooleanComparisonExpression)
-                {
-                    if (((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).FirstExpression is FunctionCall firstExpression)
-                    {
-                        SpInfo spInfo = new SpInfo
-                        {
-                            Schema = firstExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)firstExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
-                            Name = firstExpression.FunctionName.Value
-                        };
+        //public override void Visit(SelectStatement node)
+        //{
+        //    if (node.QueryExpression is QuerySpecification querySpecification && querySpecification.WhereClause != null)
+        //    {
+        //        if (querySpecification.WhereClause.SearchCondition is BooleanComparisonExpression)
+        //        {
+        //            if (((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).FirstExpression is FunctionCall firstExpression)
+        //            {
+        //                SpInfo spInfo = new SpInfo
+        //                {
+        //                    Schema = firstExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)firstExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+        //                    Name = firstExpression.FunctionName.Value
+        //                };
 
-                        //optimize the procedure
-                        if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
-                        {
-                            ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
-                            ProcOptimizer.Process(spInfo);
-                        }
-                        ((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(firstExpression);
-                    }
-                    if (((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).SecondExpression is FunctionCall secondExpression)
-                    {
-                        SpInfo spInfo = new SpInfo
-                        {
-                            Schema = secondExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)secondExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
-                            Name = secondExpression.FunctionName.Value
-                        };
+        //                //optimize the procedure
+        //                if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
+        //                {
+        //                    ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
+        //                    ProcOptimizer.Process(spInfo);
+        //                }
+        //                ((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(firstExpression);
+        //            }
+        //            if (((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).SecondExpression is FunctionCall secondExpression)
+        //            {
+        //                SpInfo spInfo = new SpInfo
+        //                {
+        //                    Schema = secondExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)secondExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+        //                    Name = secondExpression.FunctionName.Value
+        //                };
 
-                        //optimize the procedure
-                        if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
-                        {
-                            ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
-                            ProcOptimizer.Process(spInfo);
-                        }
-                        ((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(secondExpression);
-                    }
-                }
-                else if (querySpecification.WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
-                {
-                    querySpecification.WhereClause.SearchCondition = SelectHandler(booleanBinaryExpression);
-                }
+        //                //optimize the procedure
+        //                if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
+        //                {
+        //                    ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
+        //                    ProcOptimizer.Process(spInfo);
+        //                }
+        //                ((BooleanComparisonExpression)querySpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(secondExpression);
+        //            }
+        //        }
+        //        else if (querySpecification.WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
+        //        {
+        //            querySpecification.WhereClause.SearchCondition = SelectHandler(booleanBinaryExpression);
+        //        }
 
-                foreach (SelectSetVariable selectSetVariable in querySpecification.SelectElements.Where(a => a is SelectSetVariable))
-                {
-                    if (selectSetVariable.Expression is FunctionCall functionCall)
-                    {
-                        SpInfo spInfo = new SpInfo
-                        {
-                            Schema = functionCall.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
-                            Name = functionCall.FunctionName.Value
-                        };
+        //        foreach (SelectSetVariable selectSetVariable in querySpecification.SelectElements.Where(a => a is SelectSetVariable))
+        //        {
+        //            if (selectSetVariable.Expression is FunctionCall functionCall)
+        //            {
+        //                SpInfo spInfo = new SpInfo
+        //                {
+        //                    Schema = functionCall.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+        //                    Name = functionCall.FunctionName.Value
+        //                };
 
-                        //optimize the procedure
-                        if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
-                        {
-                            ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
-                            ProcOptimizer.Process(spInfo);
-                        }
-                        selectSetVariable.Expression = ReturnVisitorHandler((FunctionCall)selectSetVariable.Expression);
-                    }
-                }
-            }
-            base.Visit(node);
-        }
+        //                //optimize the procedure
+        //                if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
+        //                {
+        //                    ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
+        //                    ProcOptimizer.Process(spInfo);
+        //                }
+        //                selectSetVariable.Expression = ReturnVisitorHandler((FunctionCall)selectSetVariable.Expression);
+        //            }
+        //        }
+        //    }
+        //    base.Visit(node);
+        //}
 
-        public override void Visit(UpdateStatement node)
-        {
-            if (node.UpdateSpecification.WhereClause != null && node.UpdateSpecification.WhereClause.SearchCondition is BooleanComparisonExpression)
-            {
-                if (((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).FirstExpression is FunctionCall firstExpression)
-                {
-                    SpInfo spInfo = new SpInfo
-                    {
-                        Schema = firstExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)firstExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
-                        Name = firstExpression.FunctionName.Value
-                    };
+        //public override void Visit(UpdateStatement node)
+        //{
+        //    if (node.UpdateSpecification.WhereClause != null && node.UpdateSpecification.WhereClause.SearchCondition is BooleanComparisonExpression)
+        //    {
+        //        if (((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).FirstExpression is FunctionCall firstExpression)
+        //        {
+        //            SpInfo spInfo = new SpInfo
+        //            {
+        //                Schema = firstExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)firstExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+        //                Name = firstExpression.FunctionName.Value
+        //            };
 
-                    //optimize the procedure
-                    if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
-                    {
-                        ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
-                        ProcOptimizer.Process(spInfo);
-                    }
-                    ((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(firstExpression);
-                }
-                if (((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).SecondExpression is FunctionCall secondExpression)
-                {
-                    SpInfo spInfo = new SpInfo
-                    {
-                        Schema = secondExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)secondExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
-                        Name = secondExpression.FunctionName.Value
-                    };
+        //            //optimize the procedure
+        //            if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
+        //            {
+        //                ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
+        //                ProcOptimizer.Process(spInfo);
+        //            }
+        //            ((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(firstExpression);
+        //        }
+        //        if (((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).SecondExpression is FunctionCall secondExpression)
+        //        {
+        //            SpInfo spInfo = new SpInfo
+        //            {
+        //                Schema = secondExpression.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)secondExpression.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+        //                Name = secondExpression.FunctionName.Value
+        //            };
 
-                    //optimize the procedure
-                    if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
-                    {
-                        ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
-                        ProcOptimizer.Process(spInfo);
-                    }
-                    ((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(secondExpression);
-                }
-            }
-            else if (node.UpdateSpecification.WhereClause != null && node.UpdateSpecification.WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
-            {
-                node.UpdateSpecification.WhereClause.SearchCondition = SelectHandler(booleanBinaryExpression);
-            }
-            base.Visit(node);
-        }
+        //            //optimize the procedure
+        //            if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
+        //            {
+        //                ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
+        //                ProcOptimizer.Process(spInfo);
+        //            }
+        //            ((BooleanComparisonExpression)node.UpdateSpecification.WhereClause.SearchCondition).FirstExpression = ReturnVisitorHandler(secondExpression);
+        //        }
+        //    }
+        //    else if (node.UpdateSpecification.WhereClause != null && node.UpdateSpecification.WhereClause.SearchCondition is BooleanBinaryExpression booleanBinaryExpression)
+        //    {
+        //        node.UpdateSpecification.WhereClause.SearchCondition = SelectHandler(booleanBinaryExpression);
+        //    }
+        //    base.Visit(node);
+        //}
 
-        public override void Visit(PrintStatement node)
-        {
-            if (node.Expression is FunctionCall)
-                node.Expression = ReturnVisitorHandler((FunctionCall)node.Expression);
-            base.Visit(node);
-        }
+        //public override void Visit(PrintStatement node)
+        //{
+        //    if (node.Expression is FunctionCall)
+        //        node.Expression = ReturnVisitorHandler((FunctionCall)node.Expression);
+        //    base.Visit(node);
+        //}
 
         //public override void Visit(IfStatement node)
         //{
@@ -375,7 +375,7 @@ namespace TSQL_Inliner.ProcOptimization
         {
             SpInfo spInfo = new SpInfo
             {
-                Schema = (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
+                Schema = functionCall.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
                 Name = functionCall.FunctionName.Value
             };
             ProcModel procModel = ProcOptimizer.GetProcModel(spInfo);

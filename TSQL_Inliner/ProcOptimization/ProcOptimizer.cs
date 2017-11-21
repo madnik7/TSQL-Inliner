@@ -44,7 +44,8 @@ namespace TSQL_Inliner.ProcOptimization
 
         public void Process(SpInfo spInfo)
         {
-            if (spInfo.Schema != null && spInfo.Schema.ToLower() != "sys")
+            spInfo.Schema = spInfo.Schema ?? "dbo";
+            if (spInfo.Schema.ToLower() != "sys")
             {
                 string newScript;
                 try
