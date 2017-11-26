@@ -201,7 +201,7 @@ namespace TSQL_Inliner.ProcOptimization
 
             foreach (SetVariableStatement setVariableStatement in node.Statements.Where(a => a is SetVariableStatement).ToList())
             {
-                if (setVariableStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null)
+                if (setVariableStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                 {
                     var newBody = ExecuteFunctionStatement(functionCall, setVariableStatement.Variable.Name);
                     if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
@@ -215,7 +215,7 @@ namespace TSQL_Inliner.ProcOptimization
             foreach (DeclareVariableStatement declareVariableStatement in node.Statements.Where(a => a is DeclareVariableStatement).ToList())
             {
                 foreach (var declaration in declareVariableStatement.Declarations)
-                    if (declaration.Value is FunctionCall functionCall && functionCall.CallTarget != null)
+                    if (declaration.Value is FunctionCall functionCall && functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                     {
                         var newBody = ExecuteFunctionStatement((FunctionCall)declaration.Value, declaration.VariableName.Value);
                         if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
@@ -229,7 +229,7 @@ namespace TSQL_Inliner.ProcOptimization
 
             foreach (ReturnStatement returnStatement in node.Statements.Where(a => a is ReturnStatement).ToList())
             {
-                if (returnStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null)
+                if (returnStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                 {
                     var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
                     if (newBody.StatementList != null && newBody.StatementList.Statements.Any())
@@ -246,7 +246,7 @@ namespace TSQL_Inliner.ProcOptimization
             {
                 if (ifStatement.Predicate is BooleanParenthesisExpression &&
                            ((BooleanParenthesisExpression)ifStatement.Predicate).Expression is BooleanComparisonExpression &&
-                           ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression is FunctionCall functionCall && functionCall.CallTarget != null)
+                           ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression is FunctionCall functionCall && functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                 {
                     var newBody = ExecuteFunctionStatement(functionCall);
                     node.Statements.Insert(node.Statements.IndexOf(ifStatement), newBody);
@@ -274,7 +274,7 @@ namespace TSQL_Inliner.ProcOptimization
                 }
                 else if (ifStatement.ThenStatement is SetVariableStatement setVariableStatement)
                 {
-                    if (setVariableStatement.Expression is FunctionCall functionCallExpression && functionCallExpression.CallTarget != null)
+                    if (setVariableStatement.Expression is FunctionCall functionCallExpression && functionCallExpression.CallTarget != null && functionCallExpression.CallTarget is MultiPartIdentifierCallTarget)
                     {
                         var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable.Name);
                         ifStatement.ThenStatement = newBody;
@@ -286,7 +286,7 @@ namespace TSQL_Inliner.ProcOptimization
                 }
                 else if (ifStatement.ThenStatement is ReturnStatement returnStatement)
                 {
-                    if (returnStatement.Expression is FunctionCall functionCallExpression && functionCallExpression.CallTarget != null)
+                    if (returnStatement.Expression is FunctionCall functionCallExpression && functionCallExpression.CallTarget != null && functionCallExpression.CallTarget is MultiPartIdentifierCallTarget)
                     {
                         var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
                         ifStatement.ThenStatement = newBody;
@@ -363,6 +363,11 @@ namespace TSQL_Inliner.ProcOptimization
 
         private ScalarExpression ReturnVisitorHandler(FunctionCall functionCall)
         {
+            if (functionCall.CallTarget is ExpressionCallTarget)
+            {
+
+            }
+
             SpInfo spInfo = new SpInfo
             {
                 Schema = (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,

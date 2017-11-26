@@ -37,7 +37,6 @@ namespace TSQL_Inliner.Inliner
                 switch (procModel.CommentModel.InlineMode.ToLower())
                 {
                     case "inline":
-
                         TSqlBatch batche = ((TSqlScript)tSqlFragment).Batches.FirstOrDefault(a => a.Statements.Any(b => b is CreateProcedureStatement));
                         if (batche != null)
                         {
