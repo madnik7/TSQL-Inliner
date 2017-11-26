@@ -16,19 +16,13 @@ namespace TSQL_Inliner.Inliner
             {
                 var parameter = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.FirstExpression).Name);
 
-                node.FirstExpression = new ParenthesisExpression()
-                {
-                    Expression = parameter.Value
-                };
+                node.FirstExpression = parameter.Value;
             }
             if (node.SecondExpression is VariableReference)
             {
                 var parameter = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.SecondExpression).Name);
 
-                node.SecondExpression = new ParenthesisExpression()
-                {
-                    Expression = parameter.Value
-                };
+                node.SecondExpression = parameter.Value;
             }
             base.ExplicitVisit(node);
         }

@@ -385,7 +385,10 @@ namespace TSQL_Inliner.ProcOptimization
 
                     beginEndBlock.Accept(returnVisitor);
 
-                    return returnStatement.Expression;
+                    return new ParenthesisExpression()
+                    {
+                        Expression = returnStatement.Expression
+                    };
                 }
             }
             return functionCall;
