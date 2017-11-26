@@ -14,27 +14,15 @@ namespace TSQL_Inliner.Inliner
         {
             if (node.FirstExpression is VariableReference)
             {
-                   var parameter = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.FirstExpression).Name);
-                if (parameter.Value is VariableReference)
-                {
-                    node.FirstExpression = (VariableReference)parameter.Value;
-                }
-                else if(parameter.Value is Literal)
-                {
-                    node.FirstExpression = (Literal)parameter.Value;
-                }
+                var parameter = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.FirstExpression).Name);
+
+                node.FirstExpression = parameter.Value;
             }
             if (node.SecondExpression is VariableReference)
             {
                 var parameter = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.SecondExpression).Name);
-                if (parameter.Value is VariableReference)
-                {
-                    node.SecondExpression = (VariableReference)parameter.Value;
-                }
-                else if (parameter.Value is Literal)
-                {
-                    node.SecondExpression = (Literal)parameter.Value;
-                }
+
+                node.SecondExpression = parameter.Value;
             }
             base.ExplicitVisit(node);
         }
