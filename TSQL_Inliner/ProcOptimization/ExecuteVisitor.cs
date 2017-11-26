@@ -129,30 +129,6 @@ namespace TSQL_Inliner.ProcOptimization
             base.Visit(node);
         }
 
-        //public override void Visit(IfStatement node)
-        //{
-        //    if (node.Predicate is BooleanParenthesisExpression &&
-        //               ((BooleanParenthesisExpression)node.Predicate).Expression is BooleanComparisonExpression &&
-        //               ((BooleanComparisonExpression)((BooleanParenthesisExpression)node.Predicate).Expression).FirstExpression is FunctionCall functionCall)
-        //    {
-        //        SpInfo spInfo = new SpInfo
-        //        {
-        //            Schema = functionCall.CallTarget == null ? "dbo" : (((MultiPartIdentifierCallTarget)functionCall.CallTarget).MultiPartIdentifier.Identifiers).FirstOrDefault().Value,
-        //            Name = functionCall.FunctionName.Value
-        //        };
-
-        //        //optimize the procedure
-        //        if (!ProcOptimizer.ProcessedProcdures.Any(a => a == $"{spInfo.Schema}.{spInfo.Name}"))
-        //        {
-        //            ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
-        //            ProcOptimizer.Process(spInfo);
-        //        }
-
-        //        ((BooleanComparisonExpression)((BooleanParenthesisExpression)node.Predicate).Expression).FirstExpression = ReturnVisitorHandler(functionCall);
-        //    }
-        //    base.Visit(node);
-        //}
-
         public override void Visit(TSqlScript node)
         {
             if (node.Batches.Any() && node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement))
@@ -268,6 +244,20 @@ namespace TSQL_Inliner.ProcOptimization
             //Handle Function/StoredProcedure call in IfStatement
             foreach (IfStatement ifStatement in node.Statements.Where(a => a is IfStatement).ToList())
             {
+                if (ifStatement.Predicate is BooleanParenthesisExpression &&
+                           ((BooleanParenthesisExpression)ifStatement.Predicate).Expression is BooleanComparisonExpression &&
+                           ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression is FunctionCall functionCall && functionCall.CallTarget != null)
+                {
+                    var newBody = ExecuteFunctionStatement(functionCall);
+                    node.Statements.Insert(node.Statements.IndexOf(ifStatement), newBody);
+                    newStatements.Add(newBody);
+
+                    ((BooleanComparisonExpression)((BooleanParenthesisExpression)ifStatement.Predicate).Expression).FirstExpression = new VariableReference()
+                    {
+                        Name = Program.ProcOptimizer.BuildNewName("@ReturnValue", ProcOptimizer.VariableCounter)
+                    };
+                }
+
                 if (ifStatement.ThenStatement is ExecuteStatement executeStatement)
                 {
                     var executableProcedureReference = (ExecutableProcedureReference)executeStatement.ExecuteSpecification.ExecutableEntity;
@@ -284,7 +274,7 @@ namespace TSQL_Inliner.ProcOptimization
                 }
                 else if (ifStatement.ThenStatement is SetVariableStatement setVariableStatement)
                 {
-                    if (setVariableStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null)
+                    if (setVariableStatement.Expression is FunctionCall functionCallExpression && functionCallExpression.CallTarget != null)
                     {
                         var newBody = ExecuteFunctionStatement((FunctionCall)setVariableStatement.Expression, setVariableStatement.Variable.Name);
                         ifStatement.ThenStatement = newBody;
@@ -296,7 +286,7 @@ namespace TSQL_Inliner.ProcOptimization
                 }
                 else if (ifStatement.ThenStatement is ReturnStatement returnStatement)
                 {
-                    if (returnStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null)
+                    if (returnStatement.Expression is FunctionCall functionCallExpression && functionCallExpression.CallTarget != null)
                     {
                         var newBody = ExecuteFunctionStatement((FunctionCall)returnStatement.Expression, isReturn: true);
                         ifStatement.ThenStatement = newBody;
