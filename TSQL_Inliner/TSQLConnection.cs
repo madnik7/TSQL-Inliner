@@ -93,6 +93,7 @@ namespace TSQL_Inliner
         {
             SqlConnection sqlConnection = new SqlConnection(ConnectionString);
             SqlCommand sqlCommand = new SqlCommand(script, sqlConnection);
+            sqlCommand.CommandTimeout = 0;
             sqlConnection.Open();
             SqlDataReader reader = sqlCommand.ExecuteReader();
             sqlConnection.Close();
