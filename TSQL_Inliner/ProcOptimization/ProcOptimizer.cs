@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using TSQL_Inliner.Inliner;
 using TSQL_Inliner.Model;
 
 namespace TSQL_Inliner.ProcOptimization
@@ -16,7 +17,7 @@ namespace TSQL_Inliner.ProcOptimization
         public FunctionReturnType FunctionReturnType { get; set; }
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
-
+        
         public ProcOptimizer(TSQLConnection tSQLConnection)
         {
             TSQLConnection = tSQLConnection;
@@ -57,7 +58,7 @@ namespace TSQL_Inliner.ProcOptimization
                     }
                 }
                 catch (Exception ex)
-                {
+                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.Write($"Error! {ex.Message}");
                     Console.ResetColor();
@@ -98,6 +99,9 @@ namespace TSQL_Inliner.ProcOptimization
             {
                 Console.Write($"... ");
 
+                ReturnVisitor returnVisitor = new ReturnVisitor();
+                procModel.TSqlFragment.Accept(returnVisitor);
+                
                 ExecuteVisitor executeVisitor = new ExecuteVisitor();
                 procModel.TSqlFragment.Accept(executeVisitor);
 
@@ -108,7 +112,7 @@ namespace TSQL_Inliner.ProcOptimization
             return null;
         }
 
-        public ProcModel GetProcModel(SpInfo spInfo)
+        public ProcModel GetProcModel(SpInfo spInfo/*, bool forInline = false*/)
         {
             var parser = new TSql140Parser(true);
             var script = TSQLConnection.GetScript(spInfo);
@@ -143,6 +147,34 @@ namespace TSQL_Inliner.ProcOptimization
                             procModel.TopComments += $"{comment.Text}{Environment.NewLine}";
                         }
                     }
+
+                    //if (forInline)
+                    //{
+                    //    if (fragment is TSqlScript tSqlScript &&
+                    //   tSqlScript.Batches.Count == 1 &&
+                    //   tSqlScript.Batches.FirstOrDefault().Statements.Count == 1 &&
+                    //   tSqlScript.Batches.FirstOrDefault().Statements.FirstOrDefault() is CreateProcedureStatement alterProcedureStatement &&
+                    //   alterProcedureStatement.StatementList.Statements.Count == 1 &&
+                    //   alterProcedureStatement.StatementList.Statements.FirstOrDefault() is BeginEndBlockStatement beginEndBlockStatement &&
+                    //   beginEndBlockStatement.StatementList.Statements.Count == 1 &&
+                    //   beginEndBlockStatement.StatementList.Statements.FirstOrDefault() is ReturnStatement returnStatement)
+                    //    {
+                    //        procModel.TSqlFragment = returnStatement.Expression;
+                    //    }
+                    //    else
+                    //    if (fragment is TSqlScript tSqlScript1 &&
+                    //   tSqlScript1.Batches.Count == 1 &&
+                    //   tSqlScript1.Batches.FirstOrDefault().Statements.Count == 1 &&
+                    //   tSqlScript1.Batches.FirstOrDefault().Statements.FirstOrDefault() is CreateFunctionStatement alterFunctionStatement &&
+                    //   alterFunctionStatement.StatementList.Statements.Count == 1 &&
+                    //   alterFunctionStatement.StatementList.Statements.FirstOrDefault() is BeginEndBlockStatement beginEndBlockStatement1 &&
+                    //   beginEndBlockStatement1.StatementList.Statements.Count == 1 &&
+                    //   beginEndBlockStatement1.StatementList.Statements.FirstOrDefault() is ReturnStatement returnStatement1)
+                    //    {
+                    //        procModel.TSqlFragment = returnStatement1.Expression;
+                    //    }
+                    //}
+                    //else
                     procModel.TSqlFragment = fragment;
                 }
             }
