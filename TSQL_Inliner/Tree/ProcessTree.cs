@@ -87,7 +87,7 @@ namespace TSQL_Inliner.Tree
             {
                 return propertyInfo.GetValue(node);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return "";
             }

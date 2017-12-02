@@ -358,7 +358,7 @@ namespace TSQL_Inliner.Inliner
                 BeginEndBlockStatement beginEndBlock = (BeginEndBlockStatement)createFunctionStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement);
                 if (beginEndBlock.StatementList.Statements.Count() == 1 && beginEndBlock.StatementList.Statements.FirstOrDefault() is ReturnStatement returnStatement)
                 {
-                    renameVariableReference(procModel.TSqlFragment);
+                    RenameVariableReference(procModel.TSqlFragment);
                     //ReturnVisitor returnVisitor = new ReturnVisitor();
 
                     //int unnamedValuesCounter = 0;
@@ -387,7 +387,7 @@ namespace TSQL_Inliner.Inliner
             return functionCall;
         }
 
-        public void renameVariableReference(TSqlFragment script)
+        public void RenameVariableReference(TSqlFragment script)
         {
             var enumerator = new EnumeratorVisitor();
             script.Accept(enumerator);
@@ -395,11 +395,11 @@ namespace TSQL_Inliner.Inliner
             ProcessTree processTree = new ProcessTree();
             foreach (var node in enumerator.Nodes)
             {
-                setVariableReference(processTree.GetChildren(node));
+                SetVariableReference(processTree.GetChildren(node));
             }
         }
 
-        public void setVariableReference(List<TreeModel> treeModelList)
+        public void SetVariableReference(List<TreeModel> treeModelList)
         {
             foreach (var i in treeModelList)
             {
@@ -412,7 +412,7 @@ namespace TSQL_Inliner.Inliner
                 }
                 if (i.Items != null && i.Items.Any())
                 {
-                    setVariableReference(i.Items);
+                    SetVariableReference(i.Items);
                 }
             }
         }

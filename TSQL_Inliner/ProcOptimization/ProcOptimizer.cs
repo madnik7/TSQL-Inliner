@@ -17,7 +17,7 @@ namespace TSQL_Inliner.ProcOptimization
         public FunctionReturnType FunctionReturnType { get; set; }
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
-        
+
         public ProcOptimizer(TSQLConnection tSQLConnection)
         {
             TSQLConnection = tSQLConnection;
@@ -58,7 +58,7 @@ namespace TSQL_Inliner.ProcOptimization
                     }
                 }
                 catch (Exception ex)
-                 {
+                {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.Write($"Error! {ex.Message}");
                     Console.ResetColor();
@@ -101,7 +101,7 @@ namespace TSQL_Inliner.ProcOptimization
 
                 ReturnVisitor returnVisitor = new ReturnVisitor();
                 procModel.TSqlFragment.Accept(returnVisitor);
-                
+
                 ExecuteVisitor executeVisitor = new ExecuteVisitor();
                 procModel.TSqlFragment.Accept(executeVisitor);
 

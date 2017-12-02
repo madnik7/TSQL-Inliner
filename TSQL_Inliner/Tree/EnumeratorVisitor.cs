@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace TSQL_Inliner.Tree
 {
-  public  class EnumeratorVisitor : TSqlFragmentVisitor
+    public class EnumeratorVisitor : TSqlFragmentVisitor
     {
         public List<TSqlStatement> Nodes = new List<TSqlStatement>();
 
@@ -16,8 +16,9 @@ namespace TSQL_Inliner.Tree
             base.Visit(node);
 
             if (!Nodes.Any(p => p.StartOffset <= node.StartOffset && p.StartOffset + p.FragmentLength >= node.StartOffset + node.FragmentLength))
+            {
                 Nodes.Add(node);
-
+            }
         }
     }
 }
