@@ -11,9 +11,10 @@ namespace TSQL_Inliner.Model
     {
         public TreeModel()
         {
-            Items = new List<TreeModel>();
+            Children = new List<TreeModel>();
         }
-        public TSqlFragment Node { get; set; }
-        public List<TreeModel> Items { get; set; }
+        public object DomObject { get; set; }
+
+        public List<TreeModel> Children { get; set; }
     }
 }

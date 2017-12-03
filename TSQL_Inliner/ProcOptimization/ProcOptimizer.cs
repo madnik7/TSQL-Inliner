@@ -100,7 +100,7 @@ namespace TSQL_Inliner.ProcOptimization
                 Console.Write($"... ");
 
                 ReturnVisitor returnVisitor = new ReturnVisitor();
-                procModel.TSqlFragment.Accept(returnVisitor);
+                returnVisitor.Process(procModel.TSqlFragment);
 
                 ExecuteVisitor executeVisitor = new ExecuteVisitor();
                 procModel.TSqlFragment.Accept(executeVisitor);

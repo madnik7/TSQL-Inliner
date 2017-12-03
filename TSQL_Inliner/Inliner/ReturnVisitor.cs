@@ -19,6 +19,13 @@ namespace TSQL_Inliner.Inliner
         public Dictionary<ProcedureParameter, ScalarExpression> dictionary = new Dictionary<ProcedureParameter, ScalarExpression>();
 
         int VariableCounter = 0;
+        TreeModel TreeModel;
+
+        internal void Process(TSqlFragment sqlFragment)
+        {
+            TreeModel = FragmentTreeBuilder.CreateTreeFromFragment(sqlFragment);
+            sqlFragment.Accept(this);
+        }
 
         #region Visitors
 
@@ -83,6 +90,7 @@ namespace TSQL_Inliner.Inliner
             }
             base.Visit(node);
         }
+
 
         /// <summary>
         /// override 'Visit' method for process 'ExecuteStatement' in 'StatementLists'
@@ -392,7 +400,7 @@ namespace TSQL_Inliner.Inliner
             var enumerator = new EnumeratorVisitor();
             script.Accept(enumerator);
 
-            ProcessTree processTree = new ProcessTree();
+            FragmentTreeBuilder processTree = new FragmentTreeBuilder();
             foreach (var node in enumerator.Nodes)
             {
                 SetVariableReference(processTree.GetChildren(node));
@@ -403,16 +411,16 @@ namespace TSQL_Inliner.Inliner
         {
             foreach (var i in treeModelList)
             {
-                if (i.Node is VariableReference variableReference)
+                if (i.DomObject is VariableReference variableReference)
                 {
-                    i.Node = new ParenthesisExpression()
+                    i.DomObject = new ParenthesisExpression()
                     {
                         Expression = variableReference
                     };
                 }
-                if (i.Items != null && i.Items.Any())
+                if (i.Children != null && i.Children.Any())
                 {
-                    SetVariableReference(i.Items);
+                    SetVariableReference(i.Children);
                 }
             }
         }

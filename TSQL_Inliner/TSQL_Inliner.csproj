@@ -63,7 +63,7 @@
     <Compile Include="ProcOptimization\ProcOptimizer.cs" />
     <Compile Include="Model\SpInfo.cs" />
     <Compile Include="Tree\EnumeratorVisitor.cs" />
-    <Compile Include="Tree\ProcessTree.cs" />
+    <Compile Include="Tree\FragmentTreeBuilder.cs" />
     <Compile Include="TSQLConnection.cs" />
     <Compile Include="ProcOptimization\ExecuteVisitor.cs" />
     <Compile Include="Model\CommentModel.cs" />

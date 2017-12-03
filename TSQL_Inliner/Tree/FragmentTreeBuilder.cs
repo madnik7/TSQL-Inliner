@@ -6,15 +6,27 @@ using TSQL_Inliner.Model;
 
 namespace TSQL_Inliner.Tree
 {
-    public class ProcessTree
+    public class FragmentTreeBuilder
     {
         private static Assembly ScriptDom;
         private int MaxDepth = 10;
 
-        public ProcessTree()
+        public FragmentTreeBuilder()
         {
             ScriptDom = Assembly.Load("Microsoft.SqlServer.TransactSql.ScriptDom");
         }
+
+        static public TreeModel CreateTreeFromFragment(TSqlFragment sqlFragment)
+        {
+            TreeModel treeModel = new TreeModel();
+
+            FragmentTreeBuilder treeBuilder = new FragmentTreeBuilder();
+            treeModel.DomObject = sqlFragment;
+            treeModel.Children = treeBuilder.GetChildren(sqlFragment);
+            return treeModel;
+        }
+
+
         public List<TreeModel> GetChildren(object node, int depth = 0)
         {
             var items = new List<TreeModel>();
@@ -22,19 +34,14 @@ namespace TSQL_Inliner.Tree
             if (depth++ > MaxDepth || IgnoreType(node))
                 return items;
 
-            if (node is IEnumerable<TreeModel>)
+            if (node is IEnumerable<object>)
             {
-                var collectionNode = new TreeModel
-                {
-                    Node = (TSqlFragment)node
-                };
-                foreach (var child in node as IEnumerable<object>)
+                var collectionNode = new TreeModel();
+                collectionNode.DomObject = node;
+                foreach (var child in node as IEnumerable<TreeModel>)
                 {
                     var children = GetChildren(child, depth);
-                    foreach (var c in children)
-                    {
-                        collectionNode.Items.Add(c);
-                    }
+                    collectionNode.Children.AddRange(children);
                 }
                 items.Add(collectionNode);
                 return items;
@@ -52,16 +59,16 @@ namespace TSQL_Inliner.Tree
 
             var newItem = new TreeModel
             {
-                Node = (TSqlFragment)node
+                DomObject = (TSqlFragment)node
             };
 
             foreach (var p in t.GetProperties())
             {
                 var item = new TreeModel
                 {
-                    Node = TryGetValue(p, node) as TSqlFragment
+                    DomObject = TryGetValue(p, node) as TSqlFragment
                 };
-                newItem.Items.Add(item);
+                newItem.Children.Add(item);
                 switch (p.Name)
                 {
                     case "ScriptTokenStream":
@@ -70,7 +77,7 @@ namespace TSQL_Inliner.Tree
                     default:
                         foreach (var i in GetChildren(TryGetValue(p, node), depth))
                         {
-                            item.Items.Add(i);
+                            item.Children.Add(i);
                         }
 
                         break;
