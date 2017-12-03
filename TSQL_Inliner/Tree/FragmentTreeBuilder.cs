@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using TSQL_Inliner.Model;
+using System.Linq;
 
 namespace TSQL_Inliner.Tree
 {
@@ -18,14 +19,19 @@ namespace TSQL_Inliner.Tree
 
         static public TreeModel CreateTreeFromFragment(TSqlFragment sqlFragment)
         {
+            EnumeratorVisitor enumeratorVisitor = new EnumeratorVisitor();
+            sqlFragment.Accept(enumeratorVisitor);
+
             TreeModel treeModel = new TreeModel();
 
             FragmentTreeBuilder treeBuilder = new FragmentTreeBuilder();
-            treeModel.DomObject = sqlFragment;
-            treeModel.Children = treeBuilder.GetChildren(sqlFragment);
+            treeModel.DomObject = enumeratorVisitor.StatementList;
+
+            foreach (var statemen in enumeratorVisitor.StatementList)
+                treeModel.Children.AddRange(treeBuilder.GetChildren(statemen));
+
             return treeModel;
         }
-
 
         public List<TreeModel> GetChildren(object node, int depth = 0)
         {
@@ -36,9 +42,11 @@ namespace TSQL_Inliner.Tree
 
             if (node is IEnumerable<object>)
             {
-                var collectionNode = new TreeModel();
-                collectionNode.DomObject = node;
-                foreach (var child in node as IEnumerable<TreeModel>)
+                var collectionNode = new TreeModel
+                {
+                    DomObject = node
+                };
+                foreach (var child in node as IEnumerable<object>)
                 {
                     var children = GetChildren(child, depth);
                     collectionNode.Children.AddRange(children);
@@ -52,8 +60,6 @@ namespace TSQL_Inliner.Tree
 
             if (t == null)
             {
-                var item = new TreeModel();
-                items.Add(item);
                 return items;
             }
 
@@ -68,20 +74,18 @@ namespace TSQL_Inliner.Tree
                 {
                     DomObject = TryGetValue(p, node) as TSqlFragment
                 };
-                newItem.Children.Add(item);
                 switch (p.Name)
                 {
                     case "ScriptTokenStream":
                         break;
 
                     default:
-                        foreach (var i in GetChildren(TryGetValue(p, node), depth))
-                        {
-                            item.Children.Add(i);
-                        }
+                        var children = GetChildren(TryGetValue(p, node), depth);
+                        item.Children.AddRange(children);
 
                         break;
                 }
+                newItem.Children.Add(item);
             }
 
             items.Add(newItem);
@@ -96,7 +100,7 @@ namespace TSQL_Inliner.Tree
             }
             catch (Exception ex)
             {
-                return "";
+                return null;
             }
         }
 
@@ -106,7 +110,6 @@ namespace TSQL_Inliner.Tree
                 return true;
 
             var type = node.GetType();
-            Console.WriteLine(type);
 
             if (node.ToString().Contains("Microsoft.SqlServer.TransactSql.ScriptDom"))
             {

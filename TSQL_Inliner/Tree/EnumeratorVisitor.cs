@@ -9,15 +9,14 @@ namespace TSQL_Inliner.Tree
 {
     public class EnumeratorVisitor : TSqlFragmentVisitor
     {
-        public List<TSqlStatement> Nodes = new List<TSqlStatement>();
+        public List<TSqlStatement> StatementList = new List<TSqlStatement>();
 
         public override void Visit(TSqlStatement node)
         {
             base.Visit(node);
-
-            if (!Nodes.Any(p => p.StartOffset <= node.StartOffset && p.StartOffset + p.FragmentLength >= node.StartOffset + node.FragmentLength))
+            if (!StatementList.Any(p => p.StartOffset <= node.StartOffset && p.StartOffset + p.FragmentLength >= node.StartOffset + node.FragmentLength))
             {
-                Nodes.Add(node);
+                StatementList.Add(node);
             }
         }
     }

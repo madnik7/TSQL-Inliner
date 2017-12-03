@@ -397,14 +397,14 @@ namespace TSQL_Inliner.Inliner
 
         public void RenameVariableReference(TSqlFragment script)
         {
-            var enumerator = new EnumeratorVisitor();
-            script.Accept(enumerator);
+            //var enumerator = new EnumeratorVisitor();
+            //script.Accept(enumerator);
 
-            FragmentTreeBuilder processTree = new FragmentTreeBuilder();
-            foreach (var node in enumerator.Nodes)
-            {
-                SetVariableReference(processTree.GetChildren(node));
-            }
+            //FragmentTreeBuilder processTree = new FragmentTreeBuilder();
+            //foreach (var node in enumerator.Nodes)
+            //{
+            //    SetVariableReference(processTree.GetChildren(node));
+            //}
         }
 
         public void SetVariableReference(List<TreeModel> treeModelList)
