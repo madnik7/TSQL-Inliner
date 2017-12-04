@@ -63,32 +63,31 @@ namespace TSQL_Inliner.Tree
                 return items;
             }
 
-            var newItem = new TreeModel
-            {
-                DomObject = (TSqlFragment)node
-            };
-
             foreach (var p in t.GetProperties())
             {
-                var item = new TreeModel
-                {
-                    DomObject = TryGetValue(p, node) as TSqlFragment
-                };
                 switch (p.Name)
                 {
                     case "ScriptTokenStream":
+                    case "StartOffset":
+                    case "FragmentLength":
+                    case "StartLine":
+                    case "StartColumn":
+                    case "FirstTokenIndex":
+                    case "LastTokenIndex":
                         break;
 
                     default:
-                        var children = GetChildren(TryGetValue(p, node), depth);
-                        item.Children.AddRange(children);
+                        var item = new TreeModel
+                        {
+                            DomObject = p
+                        };
+                        item.Children.AddRange(GetChildren(TryGetValue(p, node), depth));
 
+                        items.Add(item);
                         break;
                 }
-                newItem.Children.Add(item);
             }
 
-            items.Add(newItem);
             return items;
         }
 
