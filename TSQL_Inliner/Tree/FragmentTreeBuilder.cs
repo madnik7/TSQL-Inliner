@@ -10,11 +10,13 @@ namespace TSQL_Inliner.Tree
     public class FragmentTreeBuilder
     {
         private static Assembly ScriptDom;
-        private int MaxDepth = 10;
+        public Dictionary<object, List<TreeModel>> FragmentDictionary;
+        //private int MaxDepth = 10;
 
         public FragmentTreeBuilder()
         {
             ScriptDom = Assembly.Load("Microsoft.SqlServer.TransactSql.ScriptDom");
+            FragmentDictionary = new Dictionary<object, List<TreeModel>>();
         }
 
         static public TreeModel CreateTreeFromFragment(TSqlFragment sqlFragment)
@@ -33,12 +35,15 @@ namespace TSQL_Inliner.Tree
             return treeModel;
         }
 
-        public List<TreeModel> GetChildren(object node, int depth = 0)
+        public List<TreeModel> GetChildren(object node/*, int depth = 0*/)
         {
             var items = new List<TreeModel>();
 
-            if (depth++ > MaxDepth || IgnoreType(node))
-                return items;
+            if (FragmentDictionary.Any(a => a.Value.Any(b => b == node)))
+                return null;
+
+            if (/*depth++ > MaxDepth ||*/ IgnoreType(node))
+                return null;
 
             if (node is IEnumerable<object>)
             {
@@ -48,8 +53,13 @@ namespace TSQL_Inliner.Tree
                 };
                 foreach (var child in node as IEnumerable<object>)
                 {
-                    var children = GetChildren(child, depth);
-                    collectionNode.Children.AddRange(children);
+                    var children = GetChildren(child/*, depth*/);
+                    if (children != null)
+                    {
+                        collectionNode.Children.AddRange(children);
+                        if (children.Count > 0)
+                            FragmentDictionary.Add(child, children);
+                    }
                 }
                 items.Add(collectionNode);
                 return items;
@@ -60,7 +70,7 @@ namespace TSQL_Inliner.Tree
 
             if (t == null)
             {
-                return items;
+                return null;
             }
 
             foreach (var p in t.GetProperties())
@@ -77,13 +87,16 @@ namespace TSQL_Inliner.Tree
                         break;
 
                     default:
-                        var item = new TreeModel
+                        var children = GetChildren(TryGetValue(p, node)/*, depth*/);
+                        if (children != null)
                         {
-                            DomObject = p
-                        };
-                        item.Children.AddRange(GetChildren(TryGetValue(p, node), depth));
-
-                        items.Add(item);
+                            var item = new TreeModel
+                            {
+                                DomObject = p
+                            };
+                            item.Children.AddRange(children);
+                            items.Add(item);
+                        }
                         break;
                 }
             }
