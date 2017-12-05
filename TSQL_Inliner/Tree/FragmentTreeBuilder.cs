@@ -39,20 +39,17 @@ namespace TSQL_Inliner.Tree
         {
             var items = new List<TreeModel>();
 
-            if (FragmentDictionary.Any(a => a.Value.Any(b => b == node)))
-                return null;
-
-            if (/*depth++ > MaxDepth ||*/ IgnoreType(node))
+            if (/*depth++ > MaxDepth ||*/ IgnoreType(node) || FragmentDictionary.Any(a => a.Value.Any(b => b == node)))
                 return null;
 
             if (node is IEnumerable<object>)
             {
-                var collectionNode = new TreeModel
-                {
-                    DomObject = node
-                };
                 foreach (var child in node as IEnumerable<object>)
                 {
+                    var collectionNode = new TreeModel
+                    {
+                        DomObject = child
+                    };
                     var children = GetChildren(child/*, depth*/);
                     if (children != null)
                     {
@@ -60,8 +57,8 @@ namespace TSQL_Inliner.Tree
                         if (children.Count > 0)
                             FragmentDictionary.Add(child, children);
                     }
+                    items.Add(collectionNode);
                 }
-                items.Add(collectionNode);
                 return items;
             }
 
