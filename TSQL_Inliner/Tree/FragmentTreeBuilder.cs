@@ -24,22 +24,24 @@ namespace TSQL_Inliner.Tree
             EnumeratorVisitor enumeratorVisitor = new EnumeratorVisitor();
             sqlFragment.Accept(enumeratorVisitor);
 
-            TreeModel treeModel = new TreeModel();
+            TreeModel treeModel = new TreeModel
+            {
+                DomObject = enumeratorVisitor.StatementList,
+                ParentObjectPropertyName = "root"
+            };
 
             FragmentTreeBuilder treeBuilder = new FragmentTreeBuilder();
-            treeModel.DomObject = enumeratorVisitor.StatementList;
-
-            foreach (var statemen in enumeratorVisitor.StatementList)
-                treeModel.Children.AddRange(treeBuilder.GetChildren(statemen));
+            foreach (var statement in enumeratorVisitor.StatementList)
+                treeModel.Children.AddRange(treeBuilder.GetChildren(statement, sqlFragment.GetType().Name));
 
             return treeModel;
         }
 
-        public List<TreeModel> GetChildren(object node/*, int depth = 0*/)
+        public List<TreeModel> GetChildren(object node, string ParentObjectPropertyName)
         {
             var items = new List<TreeModel>();
 
-            if (/*depth++ > MaxDepth ||*/ IgnoreType(node) || FragmentDictionary.Any(a => a.Value.Any(b => b == node)))
+            if (IgnoreType(node) || FragmentDictionary.Any(a => a.Value.Any(b => b == node)))
                 return null;
 
             if (node is IEnumerable<object>)
@@ -48,9 +50,10 @@ namespace TSQL_Inliner.Tree
                 {
                     var collectionNode = new TreeModel
                     {
+                        ParentObjectPropertyName = ParentObjectPropertyName,
                         DomObject = child
                     };
-                    var children = GetChildren(child/*, depth*/);
+                    var children = GetChildren(child, node.ToString().Split(' ').FirstOrDefault().GetType().Name);
                     if (children != null)
                     {
                         collectionNode.Children.AddRange(children);
@@ -84,11 +87,12 @@ namespace TSQL_Inliner.Tree
                         break;
 
                     default:
-                        var children = GetChildren(TryGetValue(p, node)/*, depth*/);
+                        var children = GetChildren(TryGetValue(p, node), p.Name);
                         if (children != null)
                         {
                             var item = new TreeModel
                             {
+                                ParentObjectPropertyName = ParentObjectPropertyName,
                                 DomObject = p
                             };
                             item.Children.AddRange(children);
@@ -107,7 +111,7 @@ namespace TSQL_Inliner.Tree
             {
                 return propertyInfo.GetValue(node);
             }
-            catch (Exception ex)
+            catch
             {
                 return null;
             }

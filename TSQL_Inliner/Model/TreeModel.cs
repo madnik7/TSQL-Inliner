@@ -15,6 +15,8 @@ namespace TSQL_Inliner.Model
         }
         public object DomObject { get; set; }
 
+        public string ParentObjectPropertyName { get; set; }
+
         public List<TreeModel> Children { get; set; }
     }
 }
