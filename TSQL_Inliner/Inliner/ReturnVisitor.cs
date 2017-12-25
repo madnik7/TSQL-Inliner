@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using TSQL_Inliner.Model;
 using TSQL_Inliner.ProcOptimization;
 using TSQL_Inliner.Tree;
+using System.Reflection;
 
 namespace TSQL_Inliner.Inliner
 {
@@ -397,14 +398,10 @@ namespace TSQL_Inliner.Inliner
 
         public void RenameVariableReference(TSqlFragment script)
         {
-            //var enumerator = new EnumeratorVisitor();
-            //script.Accept(enumerator);
+            var enumerator = new EnumeratorVisitor();
+            script.Accept(enumerator);
 
-            //FragmentTreeBuilder processTree = new FragmentTreeBuilder();
-            //foreach (var node in enumerator.Nodes)
-            //{
-            //    SetVariableReference(processTree.GetChildren(node));
-            //}
+            SetVariableReference(TreeModel.Children);
         }
 
         public void SetVariableReference(List<TreeModel> treeModelList)
@@ -413,10 +410,15 @@ namespace TSQL_Inliner.Inliner
             {
                 if (i.DomObject is VariableReference variableReference)
                 {
-                    i.DomObject = new ParenthesisExpression()
+                    PropertyInfo prop = i.DomObject.GetType().GetProperty(i.ParentObjectPropertyName, BindingFlags.Public | BindingFlags.Instance);
+                    if (prop != null && prop.CanWrite)
                     {
-                        Expression = variableReference
-                    };
+                        var newValue = new ParenthesisExpression()
+                        {
+                            Expression = variableReference
+                        };
+                        prop.SetValue(i.DomObject, newValue, null);
+                    }
                 }
                 if (i.Children != null && i.Children.Any())
                 {

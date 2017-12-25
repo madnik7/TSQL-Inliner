@@ -11,7 +11,6 @@ namespace TSQL_Inliner.Tree
     {
         private static Assembly ScriptDom;
         public Dictionary<object, List<TreeModel>> FragmentDictionary;
-        //private int MaxDepth = 10;
 
         public FragmentTreeBuilder()
         {
@@ -32,8 +31,9 @@ namespace TSQL_Inliner.Tree
 
             FragmentTreeBuilder treeBuilder = new FragmentTreeBuilder();
             foreach (var statement in enumeratorVisitor.StatementList)
-                treeModel.Children.AddRange(treeBuilder.GetChildren(statement, sqlFragment.GetType().Name));
+                treeModel.Children.AddRange(treeBuilder.GetChildren(statement, ((TSqlScript)sqlFragment).Batches.FirstOrDefault().Statements.GetType().Name));
 
+            var test = Newtonsoft.Json.JsonConvert.SerializeObject(treeModel.RemoveObject(treeModel));
             return treeModel;
         }
 
@@ -53,7 +53,7 @@ namespace TSQL_Inliner.Tree
                         ParentObjectPropertyName = ParentObjectPropertyName,
                         DomObject = child
                     };
-                    var children = GetChildren(child, node.ToString().Split(' ').FirstOrDefault().GetType().Name);
+                    var children = GetChildren(child, null);
                     if (children != null)
                     {
                         collectionNode.Children.AddRange(children);

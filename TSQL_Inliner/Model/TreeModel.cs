@@ -18,5 +18,19 @@ namespace TSQL_Inliner.Model
         public string ParentObjectPropertyName { get; set; }
 
         public List<TreeModel> Children { get; set; }
+
+        //for test
+        public TreeModel RemoveObject(TreeModel model)
+        {
+            if (model.Children != null && model.Children.Any())
+                for (int i = 0; i < model.Children.Count; i++)
+                    model.Children[i] = RemoveObject(model.Children[i]);
+            TreeModel treeModel = new TreeModel()
+            {
+                Children = model.Children,
+                ParentObjectPropertyName = model.ParentObjectPropertyName
+            };
+            return treeModel;
+        }
     }
 }
