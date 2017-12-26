@@ -4,6 +4,7 @@ using TSQL_Inliner.Model;
 using TSQL_Inliner.Inliner;
 using TSQL_Inliner.ProcOptimization;
 using System.Collections.Generic;
+using Microsoft.SqlServer.TransactSql.ScriptDom;
 
 namespace TSQL_Inliner
 {

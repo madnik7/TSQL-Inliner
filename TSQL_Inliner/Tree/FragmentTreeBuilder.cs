@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using TSQL_Inliner.Model;
@@ -31,7 +30,10 @@ namespace TSQL_Inliner.Tree
 
             FragmentTreeBuilder treeBuilder = new FragmentTreeBuilder();
             foreach (var statement in enumeratorVisitor.StatementList)
-                treeModel.Children.AddRange(treeBuilder.GetChildren(statement, ((TSqlScript)sqlFragment).Batches.FirstOrDefault().Statements.GetType().Name));
+            {
+                var ParentObjectPropertyName = ((TSqlScript)sqlFragment).Batches.FirstOrDefault().GetType().GetProperty("Statements").Name;
+                treeModel.Children.AddRange(treeBuilder.GetChildren(statement, ParentObjectPropertyName));
+            }
 
             var test = Newtonsoft.Json.JsonConvert.SerializeObject(treeModel.RemoveObject(treeModel));
             return treeModel;
@@ -53,6 +55,7 @@ namespace TSQL_Inliner.Tree
                         ParentObjectPropertyName = ParentObjectPropertyName,
                         DomObject = child
                     };
+
                     var children = GetChildren(child, null);
                     if (children != null)
                     {
@@ -87,7 +90,7 @@ namespace TSQL_Inliner.Tree
                         break;
 
                     default:
-                        var children = GetChildren(TryGetValue(p, node), p.Name);
+                        var children = GetChildren(TryGetValue(p, node), node.GetType().GetProperties().FirstOrDefault(a => a == p).Name);
                         if (children != null)
                         {
                             var item = new TreeModel
@@ -122,13 +125,10 @@ namespace TSQL_Inliner.Tree
             if (node == null)
                 return true;
 
-            var type = node.GetType();
-
             if (node.ToString().Contains("Microsoft.SqlServer.TransactSql.ScriptDom"))
-            {
                 return false;
-            }
 
+            var type = node.GetType();
             return !type.FullName.Contains("Microsoft.SqlServer.TransactSql.ScriptDom");
         }
     }

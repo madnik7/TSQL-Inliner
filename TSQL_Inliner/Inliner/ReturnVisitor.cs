@@ -8,6 +8,7 @@ using TSQL_Inliner.Model;
 using TSQL_Inliner.ProcOptimization;
 using TSQL_Inliner.Tree;
 using System.Reflection;
+using static TSQL_Inliner.ProcOptimization.ProcOptimizer;
 
 namespace TSQL_Inliner.Inliner
 {
@@ -17,11 +18,9 @@ namespace TSQL_Inliner.Inliner
 
         List<TSqlFragment> newStatements = new List<TSqlFragment>();
 
-        public Dictionary<ProcedureParameter, ScalarExpression> dictionary = new Dictionary<ProcedureParameter, ScalarExpression>();
-
-        int VariableCounter = 0;
+        //int VariableCounter = 0;
         TreeModel TreeModel;
-
+        //1
         internal void Process(TSqlFragment sqlFragment)
         {
             TreeModel = FragmentTreeBuilder.CreateTreeFromFragment(sqlFragment);
@@ -31,18 +30,19 @@ namespace TSQL_Inliner.Inliner
         #region Visitors
 
         //Rename "VariableReference"s
-        public override void Visit(VariableReference node)
-        {
-            node.Name = Program.ProcOptimizer.BuildNewName(node.Name, VariableCounter);
-            base.Visit(node);
-        }
 
         public override void Visit(DeclareVariableElement node)
         {
-            node.VariableName.Value = Program.ProcOptimizer.BuildNewName(node.VariableName.Value, VariableCounter);
+            node.VariableName.Value = Program.ProcOptimizer.BuildNewName(node.VariableName.Value, ProcOptimizer.VariableCounter);
             base.Visit(node);
         }
 
+        public override void Visit(VariableReference node)
+        {
+            node.Name = Program.ProcOptimizer.BuildNewName(node.Name, ProcOptimizer.VariableCounter);
+            base.Visit(node);
+        }
+        //2
         public override void Visit(TSqlScript node)
         {
             if (node.Batches.Any() && node.Batches.FirstOrDefault().Statements.Any(b => b is CreateProcedureStatement))
@@ -91,22 +91,21 @@ namespace TSQL_Inliner.Inliner
             }
             base.Visit(node);
         }
-
-
+        //3
         /// <summary>
         /// override 'Visit' method for process 'ExecuteStatement' in 'StatementLists'
         /// </summary>
         /// <param name="node"></param>
         public override void Visit(StatementList node)
         {
-            List<DeclareVariableStatement> outDeclareVariableStatement;
+            //List<DeclareVariableStatement> outDeclareVariableStatement;
             foreach (SetVariableStatement setVariableStatement in node.Statements.Where(a => a is SetVariableStatement).ToList())
             {
                 if (setVariableStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                 {
-                    setVariableStatement.Expression = ReturnVisitorHandler(functionCall, out outDeclareVariableStatement);
-                    foreach (var i in outDeclareVariableStatement)
-                        node.Statements.Insert(node.Statements.IndexOf(setVariableStatement), i);
+                    setVariableStatement.Expression = ReturnVisitorHandler(functionCall/*, out outDeclareVariableStatement*/);
+                    //foreach (var i in outDeclareVariableStatement)
+                    //    node.Statements.Insert(node.Statements.IndexOf(setVariableStatement), i);
                 }
             }
 
@@ -115,9 +114,9 @@ namespace TSQL_Inliner.Inliner
                 foreach (var declaration in declareVariableStatement.Declarations)
                     if (declaration.Value is FunctionCall functionCall && functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                     {
-                        declaration.Value = ReturnVisitorHandler((FunctionCall)declaration.Value, out outDeclareVariableStatement);
-                        foreach (var i in outDeclareVariableStatement)
-                            node.Statements.Insert(node.Statements.IndexOf(declareVariableStatement), i);
+                        declaration.Value = ReturnVisitorHandler((FunctionCall)declaration.Value/*, out outDeclareVariableStatement*/);
+                        //foreach (var i in outDeclareVariableStatement)
+                        //    node.Statements.Insert(node.Statements.IndexOf(declareVariableStatement), i);
                     }
             }
 
@@ -125,9 +124,9 @@ namespace TSQL_Inliner.Inliner
             {
                 if (returnStatement.Expression is FunctionCall functionCall && functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                 {
-                    returnStatement.Expression = ReturnVisitorHandler((FunctionCall)returnStatement.Expression, out outDeclareVariableStatement);
-                    foreach (var i in outDeclareVariableStatement)
-                        node.Statements.Insert(node.Statements.IndexOf(returnStatement), i);
+                    returnStatement.Expression = ReturnVisitorHandler((FunctionCall)returnStatement.Expression/*, out outDeclareVariableStatement*/);
+                    //foreach (var i in outDeclareVariableStatement)
+                    //    node.Statements.Insert(node.Statements.IndexOf(returnStatement), i);
                 }
             }
 
@@ -139,9 +138,9 @@ namespace TSQL_Inliner.Inliner
                     booleanComparisonExpression.FirstExpression is FunctionCall functionCall &&
                     functionCall.CallTarget != null && functionCall.CallTarget is MultiPartIdentifierCallTarget)
                 {
-                    booleanComparisonExpression.FirstExpression = ReturnVisitorHandler(functionCall, out outDeclareVariableStatement);
-                    foreach (var i in outDeclareVariableStatement)
-                        node.Statements.Insert(node.Statements.IndexOf(ifStatement), i);
+                    booleanComparisonExpression.FirstExpression = ReturnVisitorHandler(functionCall/*, out outDeclareVariableStatement*/);
+                    //foreach (var i in outDeclareVariableStatement)
+                    //    node.Statements.Insert(node.Statements.IndexOf(ifStatement), i);
                 }
             }
 
@@ -262,27 +261,38 @@ namespace TSQL_Inliner.Inliner
         public override void Visit(PrintStatement node)
         {
             if (node.Expression is FunctionCall)
-                node.Expression = ReturnVisitorHandler((FunctionCall)node.Expression, out List<DeclareVariableStatement> outDeclareVariableStatement);
+                node.Expression = ReturnVisitorHandler((FunctionCall)node.Expression/*, out List<DeclareVariableStatement> outDeclareVariableStatement*/);
             base.Visit(node);
         }
 
         public override void ExplicitVisit(BinaryExpression node)
         {
-            if (node.FirstExpression is VariableReference)
-            {
-                var parameter = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.FirstExpression).Name);
+            //if (node.FirstExpression is VariableReference)
+            //{
+            //    var parameter = ProcOptimizer.ReturnVisitorDictionary.FirstOrDefault(a => a.Key.ProcedureParameter.VariableName.Value ==
+            //    Program.ProcOptimizer.BuildNewName(((VariableReference)node.FirstExpression).Name, ProcOptimizer.VariableCounter) &&
+            //    a.Key.VariableCounter == ProcOptimizer.VariableCounter);
+            //    if (parameter.Value != null)
+            //    {
+            //        node.FirstExpression = parameter.Value;
+            //        ProcOptimizer.ReturnVisitorDictionary.Remove(parameter.Key);
+            //    }
+            //}
+            //if (node.SecondExpression is VariableReference)
+            //{
+            //    var parameter = ProcOptimizer.ReturnVisitorDictionary.FirstOrDefault(a => a.Key.ProcedureParameter.VariableName.Value ==
+            //    Program.ProcOptimizer.BuildNewName(((VariableReference)node.SecondExpression).Name, ProcOptimizer.VariableCounter) &&
+            //     a.Key.VariableCounter == ProcOptimizer.VariableCounter);
 
-                node.FirstExpression = parameter.Value;
-            }
-            if (node.SecondExpression is VariableReference)
-            {
-                var parameter = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.SecondExpression).Name);
-
-                node.SecondExpression = parameter.Value;
-            }
+            //    if (parameter.Value != null)
+            //    {
+            //        node.SecondExpression = parameter.Value;
+            //        ProcOptimizer.ReturnVisitorDictionary.Remove(parameter.Key);
+            //    }
+            //}
             base.ExplicitVisit(node);
         }
-
+        //4
         public override void ExplicitVisit(BeginEndBlockStatement node)
         {
             //call the base if it the statement has not been generated by this object
@@ -294,8 +304,13 @@ namespace TSQL_Inliner.Inliner
         {
             if (node is VariableReference variableReference)
             {
-                var newValue = dictionary.FirstOrDefault(a => a.Key.VariableName.Value == variableReference.Name);
-                node = newValue.Value;
+                //var parameter = ProcOptimizer.ReturnVisitorDictionary.FirstOrDefault(a => a.Key.ProcedureParameter.VariableName.Value == variableReference.Name &&
+                //a.Key.VariableCounter == ProcOptimizer.VariableCounter);
+                //if (parameter.Value != null)
+                //{
+                //    node = parameter.Value;
+                //    ProcOptimizer.ReturnVisitorDictionary.Remove(parameter.Key);
+                //}
             }
             base.Visit(node);
         }
@@ -314,9 +329,9 @@ namespace TSQL_Inliner.Inliner
             else if (booleanComparisonExpression.FirstExpression is BooleanComparisonExpression)
             {
                 if (((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).FirstExpression is FunctionCall firstExpression)
-                    ((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).FirstExpression = ReturnVisitorHandler(firstExpression, out declareVariableStatement);
+                    ((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).FirstExpression = ReturnVisitorHandler(firstExpression/*, out declareVariableStatement*/);
                 else if (((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).SecondExpression is FunctionCall secondExpression)
-                    ((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).SecondExpression = ReturnVisitorHandler(secondExpression, out declareVariableStatement);
+                    ((BooleanComparisonExpression)booleanComparisonExpression.FirstExpression).SecondExpression = ReturnVisitorHandler(secondExpression/*, out declareVariableStatement*/);
             }
 
             if (booleanComparisonExpression.SecondExpression is BooleanBinaryExpression)
@@ -324,24 +339,24 @@ namespace TSQL_Inliner.Inliner
             else if (booleanComparisonExpression.SecondExpression is BooleanComparisonExpression)
             {
                 if (((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).FirstExpression is FunctionCall firstExpression)
-                    ((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).FirstExpression = ReturnVisitorHandler(firstExpression, out declareVariableStatement);
+                    ((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).FirstExpression = ReturnVisitorHandler(firstExpression/*, out declareVariableStatement*/);
                 else if (((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).SecondExpression is FunctionCall secondExpression)
-                    ((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).SecondExpression = ReturnVisitorHandler(secondExpression, out declareVariableStatement);
+                    ((BooleanComparisonExpression)booleanComparisonExpression.SecondExpression).SecondExpression = ReturnVisitorHandler(secondExpression/*, out declareVariableStatement*/);
             }
 
             return booleanComparisonExpression;
         }
 
-        private ScalarExpression ReturnVisitorHandler(FunctionCall functionCall, out List<DeclareVariableStatement> declareVariableStatement)
+        private ScalarExpression ReturnVisitorHandler(FunctionCall functionCall/*, out List<DeclareVariableStatement> declareVariableStatement*/)
         {
-            VariableCounter++;
+            //VariableCounter++;
 
-            declareVariableStatement = new List<DeclareVariableStatement>();
+            //declareVariableStatement = new List<DeclareVariableStatement>();
             foreach (var param in functionCall.Parameters.ToList())
             {
                 if (param is FunctionCall paramFunctionCall)
                 {
-                    functionCall.Parameters.Insert(functionCall.Parameters.IndexOf(param), ReturnVisitorHandler(paramFunctionCall, out declareVariableStatement));
+                    functionCall.Parameters.Insert(functionCall.Parameters.IndexOf(param), ReturnVisitorHandler(paramFunctionCall/*, out declareVariableStatement*/));
                     functionCall.Parameters.Remove(param);
                     ReturnVisitor returnVisitor = new ReturnVisitor();
                     paramFunctionCall.Accept(returnVisitor);
@@ -367,8 +382,15 @@ namespace TSQL_Inliner.Inliner
                 BeginEndBlockStatement beginEndBlock = (BeginEndBlockStatement)createFunctionStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement);
                 if (beginEndBlock.StatementList.Statements.Count() == 1 && beginEndBlock.StatementList.Statements.FirstOrDefault() is ReturnStatement returnStatement)
                 {
-                    RenameVariableReference(procModel.TSqlFragment);
-                    //ReturnVisitor returnVisitor = new ReturnVisitor();
+                    for (int i = 0; i < createFunctionStatement.Parameters.Count; i++)
+                        ProcOptimizer.ReturnVisitorDictionary.Add(new ReturnVisitorKeyModel
+                        {
+                            ProcedureParameter = createFunctionStatement.Parameters[i],
+                            FunctionCall = functionCall
+                        }, functionCall.Parameters[i]);
+
+                    //RenameVariableReference(procModel.TSqlFragment);
+                    ReturnVisitor returnVisitor = new ReturnVisitor();
 
                     //int unnamedValuesCounter = 0;
                     //DeclareVariableStatement declareVariables = new DeclareVariableStatement();
@@ -381,6 +403,7 @@ namespace TSQL_Inliner.Inliner
                     //        Nullable = parameter.Nullable,
                     //        VariableName = parameter.VariableName
                     //    };
+                    //    declareVariableElement.VariableName.Value = Program.ProcOptimizer.BuildNewName(declareVariableElement.VariableName.Value, ProcOptimizer.VariableCounter);
                     //    declareVariables.Declarations.Add(declareVariableElement);
                     //}
 
@@ -396,13 +419,13 @@ namespace TSQL_Inliner.Inliner
             return functionCall;
         }
 
-        public void RenameVariableReference(TSqlFragment script)
-        {
-            var enumerator = new EnumeratorVisitor();
-            script.Accept(enumerator);
+        //public void RenameVariableReference(TSqlFragment script)
+        //{
+        //    var enumerator = new EnumeratorVisitor();
+        //    script.Accept(enumerator);
 
-            SetVariableReference(TreeModel.Children);
-        }
+        //    SetVariableReference(TreeModel.Children);
+        //}
 
         public void SetVariableReference(List<TreeModel> treeModelList)
         {
@@ -410,14 +433,14 @@ namespace TSQL_Inliner.Inliner
             {
                 if (i.DomObject is VariableReference variableReference)
                 {
-                    PropertyInfo prop = i.DomObject.GetType().GetProperty(i.ParentObjectPropertyName, BindingFlags.Public | BindingFlags.Instance);
+                    PropertyInfo prop = variableReference.GetType().GetProperty(i.ParentObjectPropertyName, BindingFlags.Public | BindingFlags.Instance);
                     if (prop != null && prop.CanWrite)
                     {
                         var newValue = new ParenthesisExpression()
                         {
                             Expression = variableReference
                         };
-                        prop.SetValue(i.DomObject, newValue, null);
+                        prop.SetValue(variableReference, newValue, null);
                     }
                 }
                 if (i.Children != null && i.Children.Any())
