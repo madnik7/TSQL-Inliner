@@ -57,6 +57,7 @@
   <ItemGroup>
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Inliner\ExecuteInliner.cs" />
+    <Compile Include="Inliner\RenameVariablesVisitor.cs" />
     <Compile Include="Inliner\ReturnVisitor.cs" />
     <Compile Include="Model\AppArgument.cs" />
     <Compile Include="Model\TreeModel.cs" />

@@ -18,14 +18,6 @@ namespace TSQL_Inliner.ProcOptimization
         public string GoToName { get; set; }
         public List<string> ProcessedProcdures { get; set; }
 
-        public class ReturnVisitorKeyModel
-        {
-            public ProcedureParameter ProcedureParameter { get; set; }
-            public FunctionCall FunctionCall { get; set; }
-        }
-
-        public Dictionary<ReturnVisitorKeyModel, ScalarExpression> ReturnVisitorDictionary = new Dictionary<ReturnVisitorKeyModel, ScalarExpression>();
-
         public ProcOptimizer(TSQLConnection tSQLConnection)
         {
             TSQLConnection = tSQLConnection;
