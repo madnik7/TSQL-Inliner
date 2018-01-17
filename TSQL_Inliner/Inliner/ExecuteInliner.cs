@@ -70,12 +70,12 @@ namespace TSQL_Inliner.Inliner
 
                             beginEndBlockStatement.StatementList.Statements.Add(createFunctionStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement));
                         }
-
                         ProcOptimizer.GoToName = ProcOptimizer.BuildNewName($"EndOf_{spInfo.Schema}_{spInfo.Name}", VariableCounter);
 
                         beginEndBlockStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement).Accept(StatementVisitor);
 
                         ReturnStatement(beginEndBlockStatement, setVariableReferenceName);
+
                         break;
 
                     case "remove":

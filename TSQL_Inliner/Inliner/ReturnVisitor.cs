@@ -14,11 +14,11 @@ namespace TSQL_Inliner.Inliner
 
         List<TSqlFragment> newStatements = new List<TSqlFragment>();
 
-        TreeModel TreeModel;
+        //TreeModel TreeModel;
 
         internal void Process(TSqlFragment sqlFragment)
         {
-            TreeModel = FragmentTreeBuilder.CreateTreeFromFragment(sqlFragment);
+            //TreeModel = FragmentTreeBuilder.CreateTreeFromFragment(sqlFragment);
             sqlFragment.Accept(this);
         }
 
@@ -328,9 +328,10 @@ namespace TSQL_Inliner.Inliner
                 ProcOptimizer.ProcessedProcdures.Add($"{spInfo.Schema}.{spInfo.Name}");
                 ProcOptimizer.Process(spInfo);
             }
-
             ProcModel procModel = ProcOptimizer.GetProcModel(spInfo);
-            if (((TSqlScript)procModel.TSqlFragment).Batches.FirstOrDefault().Statements.FirstOrDefault() is CreateFunctionStatement createFunctionStatement)
+            if (procModel.TSqlFragment is TSqlScript TSqlScript &&
+                TSqlScript.Batches.Any() &&
+                TSqlScript.Batches.FirstOrDefault().Statements.FirstOrDefault() is CreateFunctionStatement createFunctionStatement)
             {
                 BeginEndBlockStatement beginEndBlock = (BeginEndBlockStatement)createFunctionStatement.StatementList.Statements.FirstOrDefault(a => a is BeginEndBlockStatement);
                 if (beginEndBlock.StatementList.Statements.Count() == 1 && beginEndBlock.StatementList.Statements.FirstOrDefault() is ReturnStatement returnStatement)
@@ -341,66 +342,38 @@ namespace TSQL_Inliner.Inliner
 
                     createFunctionStatement.Accept(renameVariablesVisitor);
 
-                    //RenameVariableReference(procModel.TSqlFragment);
-                    //ReturnVisitor returnVisitor = new ReturnVisitor();
-
-                    //int unnamedValuesCounter = 0;
-                    //DeclareVariableStatement declareVariables = new DeclareVariableStatement();
-                    //foreach (var parameter in createFunctionStatement.Parameters)
+                    //return new ParenthesisExpression()
                     //{
-                    //    DeclareVariableElement declareVariableElement = new DeclareVariableElement()
-                    //    {
-                    //        DataType = parameter.DataType,
-                    //        Value = functionCall.Parameters[unnamedValuesCounter++],
-                    //        Nullable = parameter.Nullable,
-                    //        VariableName = parameter.VariableName
-                    //    };
-                    //    declareVariableElement.VariableName.Value = Program.ProcOptimizer.BuildNewName(declareVariableElement.VariableName.Value, ProcOptimizer.VariableCounter);
-                    //    declareVariables.Declarations.Add(declareVariableElement);
-                    //}
-
-                    //declareVariableStatement.Add(declareVariables);
-                    //beginEndBlock.Accept(returnVisitor);
-
-                    return new ParenthesisExpression()
-                    {
-                        Expression = returnStatement.Expression
-                    };
+                    //    Expression = returnStatement.Expression
+                    //};
+                    return returnStatement.Expression;
                 }
             }
             return functionCall;
         }
 
-        //public void RenameVariableReference(TSqlFragment script)
+        //public void SetVariableReference(List<TreeModel> treeModelList)
         //{
-        //    var enumerator = new EnumeratorVisitor();
-        //    script.Accept(enumerator);
-
-        //    SetVariableReference(TreeModel.Children);
+        //    foreach (var i in treeModelList)
+        //    {
+        //        if (i.DomObject is VariableReference variableReference)
+        //        {
+        //            PropertyInfo prop = variableReference.GetType().GetProperty(i.ParentObjectPropertyName, BindingFlags.Public | BindingFlags.Instance);
+        //            if (prop != null && prop.CanWrite)
+        //            {
+        //                var newValue = new ParenthesisExpression()
+        //                {
+        //                    Expression = variableReference
+        //                };
+        //                prop.SetValue(variableReference, newValue, null);
+        //            }
+        //        }
+        //        if (i.Children != null && i.Children.Any())
+        //        {
+        //            SetVariableReference(i.Children);
+        //        }
+        //    }
         //}
-
-        public void SetVariableReference(List<TreeModel> treeModelList)
-        {
-            foreach (var i in treeModelList)
-            {
-                if (i.DomObject is VariableReference variableReference)
-                {
-                    PropertyInfo prop = variableReference.GetType().GetProperty(i.ParentObjectPropertyName, BindingFlags.Public | BindingFlags.Instance);
-                    if (prop != null && prop.CanWrite)
-                    {
-                        var newValue = new ParenthesisExpression()
-                        {
-                            Expression = variableReference
-                        };
-                        prop.SetValue(variableReference, newValue, null);
-                    }
-                }
-                if (i.Children != null && i.Children.Any())
-                {
-                    SetVariableReference(i.Children);
-                }
-            }
-        }
 
         #endregion
     }

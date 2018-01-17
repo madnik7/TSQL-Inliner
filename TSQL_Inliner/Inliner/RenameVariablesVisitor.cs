@@ -1,28 +1,17 @@
 ﻿using Microsoft.SqlServer.TransactSql.ScriptDom;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TSQL_Inliner.Model;
-using TSQL_Inliner.ProcOptimization;
-using TSQL_Inliner.Tree;
-using System.Reflection;
-using static TSQL_Inliner.ProcOptimization.ProcOptimizer;
 
 namespace TSQL_Inliner.Inliner
 {
     public class RenameVariablesVisitor : TSqlFragmentVisitor
     {
         public Dictionary<ProcedureParameter, ScalarExpression> ReturnVisitorDictionary = new Dictionary<ProcedureParameter, ScalarExpression>();
-
-        public override void ExplicitVisit(BinaryExpression node)
+        public override void Visit(BinaryExpression node)
         {
             if (node.FirstExpression is VariableReference VariableReference)
             {
-                var parameter = ReturnVisitorDictionary.FirstOrDefault(a => a.Key.VariableName.Value ==
-                VariableReference.Name);
-
+                var parameter = ReturnVisitorDictionary.FirstOrDefault(a => a.Key.VariableName.Value == VariableReference.Name);
                 if (parameter.Value != null)
                 {
                     node.FirstExpression = parameter.Value;
@@ -30,15 +19,13 @@ namespace TSQL_Inliner.Inliner
             }
             if (node.SecondExpression is VariableReference)
             {
-                var parameter = ReturnVisitorDictionary.FirstOrDefault(a => a.Key.VariableName.Value ==
-                ((VariableReference)node.SecondExpression).Name);
-
+                var parameter = ReturnVisitorDictionary.FirstOrDefault(a => a.Key.VariableName.Value == ((VariableReference)node.SecondExpression).Name);
                 if (parameter.Value != null)
                 {
                     node.SecondExpression = parameter.Value;
                 }
             }
-            base.ExplicitVisit(node);
+            //base.ExplicitVisit(node);
         }
 
         public override void Visit(ScalarExpression node)
@@ -71,10 +58,6 @@ namespace TSQL_Inliner.Inliner
                         functionCall.Parameters[functionCall.Parameters.IndexOf(VariableReference)] = parameter.Value;
                     }
                 }
-            }
-            else
-            {
-
             }
             base.Visit(node);
         }
